@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+  
+MediScribe_Production_Grade_Architecture.* 
