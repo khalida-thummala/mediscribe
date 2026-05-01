@@ -77,3 +77,9 @@ All API calls use JWT authentication with automatic token refresh.
 
 ## License
 Proprietary — MediScribe Healthcare Solutions
+
+## Author
+
+**Thummala Khalida**
+
+Frontend Developer – MediScribe
