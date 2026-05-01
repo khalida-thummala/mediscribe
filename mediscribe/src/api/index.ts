@@ -1,0 +1,7 @@
+export { authApi } from './auth'
+export { patientsApi } from './patients'
+export { consultationsApi } from './consultations'
+export { reportsApi } from './reports'
+export { analysisApi } from './analysis'
+export { analyticsApi } from './analytics'
+export { auditApi } from './audit'

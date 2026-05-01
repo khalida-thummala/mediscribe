@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface-2: #f0f2f8;
+    --border: #e2e5ef;
+    --border-2: #c9cedd;
+    --text: #0f1524;
+    --text-2: #4a5068;
+    --text-3: #8490a8;
+    --teal: #0d6e6e;
+    --teal-light: #e6f5f5;
+    --teal-mid: #1d9e9e;
+    --radius: 10px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,0.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: 'DM Serif Display', serif;
+    font-weight: 400;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white border border-gray-200 rounded-[10px];
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-medium text-sm
+           border border-gray-300 bg-white text-gray-700 cursor-pointer
+           transition-all duration-150 hover:bg-gray-50 active:scale-[0.98];
+  }
+
+  .btn-primary {
+    @apply bg-teal-600 border-teal-600 text-white hover:bg-teal-700;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1 text-xs;
+  }
+
+  .form-control {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+           focus:outline-none focus:border-teal-400 transition-colors bg-white;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-green  { @apply bg-green-50  text-green-700; }
+  .badge-red    { @apply bg-red-50    text-red-700; }
+  .badge-amber  { @apply bg-amber-50  text-amber-700; }
+  .badge-blue   { @apply bg-blue-50   text-blue-700; }
+  .badge-purple { @apply bg-purple-50 text-purple-700; }
+  .badge-teal   { @apply bg-teal-50   text-teal-700; }
+  .badge-gray   { @apply bg-gray-100  text-gray-600; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c9cedd; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8490a8; }
+}
+
+/* SOAP section colours */
+.soap-s { border-top: 3px solid #1a4fc4; }
+.soap-o { border-top: 3px solid #0e7c4a; }
+.soap-a { border-top: 3px solid #c0392b; }
+.soap-p { border-top: 3px solid #5a3fad; }
+
+/* Recording pulse */
+@keyframes pulse-rec {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.3); }
+  50% { box-shadow: 0 0 0 12px rgba(192,57,43,0); }
+}
+.recording { animation: pulse-rec 1.2s infinite; }
+
+/* Waveform bar */
+@keyframes wave {
+  0%, 100% { height: 4px; }
+  50% { height: 32px; }
+}
+
+/* Diff colours */
+.diff-added   { background: #d4edda; border-left: 3px solid #28a745; padding: 1px 5px; border-radius: 2px; }
+.diff-removed { background: #f8d7da; border-left: 3px solid #dc3545; padding: 1px 5px; border-radius: 2px; text-decoration: line-through; }
