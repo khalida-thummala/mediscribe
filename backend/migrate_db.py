@@ -23,13 +23,13 @@ def migrate():
         except Exception as e:
             print(f"otp_expiry error: {e}")
             
+        try:
+            conn.execute(text("ALTER TABLE consultations ADD COLUMN transcription_job_id VARCHAR"))
+            print("Added transcription_job_id")
+        except Exception as e:
+            print(f"transcription_job_id error: {e}")
+            
         conn.commit()
-    try:
-        db.execute(text("ALTER TABLE consultations ADD COLUMN transcription_job_id VARCHAR"))
-        db.commit()
-    except Exception as e:
-        print(f"transcription_job_id error: {str(e)}")
-        db.rollback()
 
     print("Migration complete.")
 
