@@ -79,7 +79,24 @@ export default function PatientForm({ initial, onSuccess }: Props) {
         {field('Medical ID', 'medical_id', 'text', true)}
         {field('Blood Type', 'blood_type')}
         {field('Email', 'email', 'email')}
-        {field('Phone', 'phone', 'tel')}
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
+            Phone
+          </label>
+          <input
+            type="tel"
+            {...register('phone', { 
+              maxLength: { value: 10, message: 'Max 10 digits' },
+              minLength: { value: 10, message: 'Must be 10 digits' },
+              pattern: { value: /^[0-9]+$/, message: 'Numbers only' }
+            })}
+            maxLength={10}
+            className="form-control"
+            placeholder="1234567890"
+            style={{ marginBottom: 0 }}
+          />
+          {errors.phone && <span style={{ fontSize: 11, color: '#e74c3c' }}>{errors.phone.message}</span>}
+        </div>
       </div>
       <div style={{ marginBottom: 14 }}>
         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>Allergies</label>
