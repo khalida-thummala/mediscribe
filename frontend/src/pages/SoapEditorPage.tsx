@@ -1,10 +1,8 @@
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import SOAPEditor from '@/components/soap/SOAPEditor'
 
 export default function SoapEditorPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
 
   if (!id) return <div style={{ color: 'var(--text-3)', padding: 40 }}>Consultation ID missing</div>
 
