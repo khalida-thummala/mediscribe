@@ -1,122 +1,63 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime
+from typing import List, Optional
 
 from app.db.deps import get_db
-from app.models.patient import Patient
-from app.schemas.patient import PatientCreate, PatientUpdate
+from app.schemas.patient import Patient, PatientCreate, PatientUpdate
 from app.core.deps import get_current_user
 from app.core.roles import require_role
+from app.services.patient_service import PatientService
 
 router = APIRouter()
 
-
-# CREATE PATIENT
-@router.post("")
+@router.post("", response_model=Patient)
 def create_patient(
     patient: PatientCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(["admin", "practitioner"])
-    )
+    current_user=Depends(require_role(["admin", "practitioner"]))
 ):
-    new_patient = Patient(
-        **patient.dict(),
-
-        # exact schema linkage
-        user_id=current_user.user_id,
-        organization_id=current_user.organization_id
+    return PatientService.create_patient(
+        db, patient, current_user.user_id, current_user.organization_id
     )
 
-    db.add(new_patient)
-    db.commit()
-    db.refresh(new_patient)
-
-    return new_patient
-
-
-# GET ALL PATIENTS (only same organization)
-@router.get("")
+@router.get("", response_model=List[Patient])
 def get_patients(
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    patients = db.query(Patient).filter(
-        Patient.organization_id == current_user.organization_id,
-        Patient.deleted_at == None
-    ).all()
+    return PatientService.get_patients(db, current_user.organization_id, search)
 
-    return patients
-
-
-# GET SINGLE PATIENT
-@router.get("/{patient_id}")
+@router.get("/{patient_id}", response_model=Patient)
 def get_patient(
     patient_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    patient = db.query(Patient).filter(
-        Patient.patient_id == patient_id,
-        Patient.organization_id == current_user.organization_id
-    ).first()
-
+    patient = PatientService.get_patient_by_id(db, patient_id, current_user.organization_id)
     if not patient:
-        return {"error": "Patient not found"}
-
+        raise HTTPException(status_code=404, detail="Patient not found")
     return patient
 
-
-# UPDATE PATIENT
-@router.put("/{patient_id}")
+@router.put("/{patient_id}", response_model=Patient)
 def update_patient(
     patient_id: str,
     updated: PatientUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(["admin", "practitioner"])
-    )
+    current_user=Depends(require_role(["admin", "practitioner"]))
 ):
-    patient = db.query(Patient).filter(
-        Patient.patient_id == patient_id,
-        Patient.organization_id == current_user.organization_id
-    ).first()
-
+    patient = PatientService.update_patient(db, patient_id, updated, current_user.organization_id)
     if not patient:
-        return {"error": "Patient not found"}
-
-    for key, value in updated.dict(exclude_unset=True).items():
-        setattr(patient, key, value)
-
-    db.commit()
-    db.refresh(patient)
-
+        raise HTTPException(status_code=404, detail="Patient not found")
     return patient
 
-
-# SOFT DELETE PATIENT
 @router.delete("/{patient_id}")
 def delete_patient(
     patient_id: str,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(["admin"])
-    )
+    current_user=Depends(require_role(["admin"]))
 ):
-    patient = db.query(Patient).filter(
-        Patient.patient_id == patient_id,
-        Patient.organization_id == current_user.organization_id
-    ).first()
-
-    if not patient:
-        return {"error": "Patient not found"}
-
-    # soft delete
-    patient.deleted_at = datetime.utcnow()
-    patient.status = "archived"
-
-    db.commit()
-
-    return {
-        "message": "Patient archived successfully"
-    }
+    success = PatientService.delete_patient(db, patient_id, current_user.organization_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return {"message": "Patient archived successfully"}

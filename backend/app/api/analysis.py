@@ -1,160 +1,75 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from datetime import datetime
-import json
+from typing import List, Optional
 
 from app.db.deps import get_db
-from app.models.analysis import Analysis
-from app.schemas.analysis import (
-    AnalysisUpload,
-    AnalysisApproval
-)
+from app.schemas.analysis import AIAnalysisRecord, AIAnalysisCreate
 from app.core.deps import get_current_user
-from app.core.roles import require_role
-from app.core.analysis_ai import generate_analysis
+from app.services.analysis_service import AnalysisService
 
 router = APIRouter()
 
-
-# Upload
-@router.post("/upload")
-def upload_analysis(
-    data: AnalysisUpload,
+@router.post("", response_model=AIAnalysisRecord)
+def create_analysis(
+    data: AIAnalysisCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(["admin", "practitioner"])
-    )
+    current_user=Depends(get_current_user)
 ):
-    record = Analysis(
-        upload_id=data.upload_id,
-        user_id=current_user.user_id,
-        organization_id=current_user.organization_id,
-        source_file_name=data.source_file_name,
-        source_file_type=data.source_file_type,
-        extracted_text=data.extracted_text,
-        analysis_status="pending"
+    return AnalysisService.create_analysis_record(
+        db, data, current_user.user_id, current_user.organization_id
     )
 
-    db.add(record)
-    db.commit()
-    db.refresh(record)
+@router.get("", response_model=List[AIAnalysisRecord])
+def get_analyses(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    return AnalysisService.get_analysis_records(db, current_user.organization_id)
 
-    return record
+@router.post("/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    file_type: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    return await AnalysisService.process_upload(
+        db, file, file_type, current_user.user_id, current_user.organization_id
+    )
 
-
-# Analyze
 @router.post("/{analysis_id}/analyze")
-def run_analysis(
+def analyze_document(
     analysis_id: str,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(["admin", "practitioner"])
-    )
+    current_user = Depends(get_current_user)
 ):
-    record = db.query(Analysis).filter(
-        Analysis.analysis_id == analysis_id
-    ).first()
+    analysis = AnalysisService.analyze_document(db, analysis_id, current_user.organization_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis record not found")
+    return analysis
 
-    if not record:
-        return {"error": "Analysis not found"}
-
-    record.analysis_status = "analyzing"
-    db.commit()
-
-    ai_output = generate_analysis(
-        record.extracted_text
-    )
-
-    try:
-        parsed = json.loads(ai_output)
-    except:
-        record.analysis_status = "failed"
-        db.commit()
-
-        return {
-            "error": "Invalid AI response",
-            "raw": ai_output
-        }
-
-    record.generated_subjective = str(
-        parsed.get("subjective")
-    )
-
-    record.generated_objective = str(
-        parsed.get("objective")
-    )
-
-    record.generated_assessment = str(
-        parsed.get("assessment")
-    )
-
-    record.generated_plan = str(
-        parsed.get("plan")
-    )
-
-    record.generated_medications = parsed.get(
-        "medications", []
-    )
-
-    record.confidence_score = parsed.get(
-        "confidence_score", 95.0
-    )
-
-    record.key_entities = parsed.get(
-        "key_entities", {}
-    )
-
-    record.comparison_data = parsed.get(
-        "comparison_data", {}
-    )
-
-    record.analysis_status = "completed"
-    record.analysis_timestamp = datetime.utcnow()
-
-    db.commit()
-    db.refresh(record)
-
-    return record
 @router.post("/{analysis_id}/approve")
 def approve_analysis(
     analysis_id: str,
-    data: AnalysisApproval,
+    data: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(["admin", "supervisor"])
-    )
+    current_user = Depends(get_current_user)
 ):
-    record = db.query(Analysis).filter(
-        Analysis.analysis_id == analysis_id
-    ).first()
+    notes = data.get("notes", "")
+    analysis = AnalysisService.approve_analysis(db, analysis_id, current_user.organization_id, notes)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis record not found")
+    return analysis
 
-    if not record:
-        return {"error": "Analysis not found"}
-
-    record.approved_by = current_user.user_id
-    record.approved_at = datetime.utcnow()
-    record.reviewed_at = datetime.utcnow()
-    record.notes = data.notes
-
-    db.commit()
-
-    return {
-        "message": "Analysis approved"
-    }
-
-@router.get("/{analysis_id}")
+@router.get("/{analysis_id}", response_model=AIAnalysisRecord)
 def get_analysis(
     analysis_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    record = db.query(Analysis).filter(
-        Analysis.analysis_id == analysis_id,
-        Analysis.organization_id ==
-        current_user.organization_id
-    ).first()
-
-    if not record:
-        return {"error": "Analysis not found"}
-
-    return record
+    analysis = AnalysisService.get_analysis_by_id(
+        db, analysis_id, current_user.organization_id
+    )
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return analysis

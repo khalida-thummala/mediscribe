@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.deps import get_db
 from app.models.report import Report
 from app.core.deps import get_current_user
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
 
 router = APIRouter()
 
@@ -14,29 +12,25 @@ def export_report(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    # Search using consultation_id
+    """Export a report — returns report data as structured JSON for frontend PDF generation."""
     report = db.query(Report).filter(
-        Report.consultation_id == id
+        Report.report_id == id,
+        Report.organization_id == user.organization_id
     ).first()
 
     if not report:
-        return {"error": "Report not found"}
-
-    file_path = f"{id}.pdf"
-
-    doc = SimpleDocTemplate(file_path)
-    styles = getSampleStyleSheet()
-
-    content = [
-        Paragraph(f"Subjective: {report.subjective}", styles["Normal"]),
-        Paragraph(f"Objective: {report.objective}", styles["Normal"]),
-        Paragraph(f"Assessment: {report.assessment}", styles["Normal"]),
-        Paragraph(f"Plan: {report.plan}", styles["Normal"]),
-    ]
-
-    doc.build(content)
+        raise HTTPException(status_code=404, detail="Report not found")
 
     return {
-        "message": "PDF created",
-        "file": file_path
+        "report_id": report.report_id,
+        "consultation_id": report.consultation_id,
+        "subjective": report.subjective,
+        "objective": report.objective,
+        "assessment": report.assessment,
+        "plan": report.plan,
+        "medications": report.medications,
+        "follow_up_needed": report.follow_up_needed,
+        "follow_up_days": report.follow_up_days,
+        "status": report.status,
+        "created_at": report.created_at.isoformat() if report.created_at else None,
     }
