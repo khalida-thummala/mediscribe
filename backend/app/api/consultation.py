@@ -111,46 +111,25 @@ def end_consultation(
         require_role(["admin", "practitioner"])
     )
 ):
-    consultation = db.query(Consultation).filter(
-        Consultation.consultation_id == consultation_id
-    ).first()
+    consultation = ConsultationService.end_consultation(
+        db, 
+        consultation_id, 
+        current_user.organization_id,
+        audio_data=data.audio_data
+    )
 
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
 
-    if data.metadata:
-        consultation.audio_file_id = data.metadata.audio_file_id
-        consultation.audio_duration_seconds = data.metadata.audio_duration_seconds
-        consultation.audio_bitrate = data.metadata.audio_bitrate
-        consultation.audio_checksum = data.metadata.audio_checksum
-    else:
-        # Fallback values
-        consultation.audio_file_id = str(uuid.uuid4())
-        consultation.audio_duration_seconds = 0
-
-    # In a real app, you'd process data.audio_data (Base64) 
-    # and call a transcription service.
-    # For now, we simulate a successful transcription.
-    consultation.transcription_text = "Simulated transcription: Patient reports back pain for 3 days."
-    consultation.transcription_status = "completed"
-    consultation.transcription_confidence = 98.2
-
-    consultation.status = "completed"
-    consultation.ended_at = datetime.now(timezone.utc)
-
-    if consultation.started_at:
-        duration = consultation.ended_at - consultation.started_at
-        consultation.duration_minutes = int(
-            duration.total_seconds() / 60
-        )
-
-    db.commit()
-    db.refresh(consultation)
-
     return {
-        "message": "Consultation completed",
-        "consultation_id": consultation_id
+        "consultation_id": consultation.consultation_id,
+        "status": consultation.status,
+        "ended_at": consultation.ended_at,
+        "duration_minutes": consultation.duration_minutes,
+        "transcription_job_id": getattr(consultation, "transcription_job_id", "pending"),
+        "transcription_status": consultation.transcription_status
     }
+
 
 
 @router.post("/{consultation_id}/generate-soap")

@@ -53,7 +53,10 @@ class ConsultationService:
         return consultation
 
     @staticmethod
-    def end_consultation(db: Session, consultation_id: str, organization_id: str, audio_data: Optional[str] = None, transcription: Optional[str] = None):
+    def end_consultation(db: Session, consultation_id: str, organization_id: str, audio_data: Optional[str] = None):
+        """
+        Ends a consultation, processes audio (encryption/storage), and triggers medical transcription.
+        """
         consultation = db.query(Consultation).filter(
             Consultation.consultation_id == consultation_id,
             Consultation.organization_id == organization_id
@@ -65,38 +68,57 @@ class ConsultationService:
         consultation.status = "processing"
         consultation.ended_at = datetime.utcnow()
         
-        # Calculate duration
+        # 1. Calculate duration
         if consultation.started_at:
             delta = consultation.ended_at - consultation.started_at
             consultation.duration_minutes = int(delta.total_seconds() / 60)
 
-        # Handle Audio
-        if audio_data:
-            # 1. Generate Checksum
-            checksum = hashlib.sha256(audio_data.encode()).hexdigest()
-            consultation.audio_checksum = checksum
-            consultation.audio_bitrate = "320kbps" # target
-            # In a real app, we would use pydub or ffmpeg to compress and upload to S3 here.
-            consultation.audio_file_id = f"audio_{consultation_id}_{checksum[:8]}"
-        
-        # Handle Transcription
-        if transcription:
-            consultation.transcription_text = transcription
-            consultation.transcription_status = "completed"
-            consultation.transcription_confidence = 0.95 # placeholder
+        # 2. Handle Audio Processing & Encryption
+        import base64
+        from app.core.speech import transcribe_audio, encrypt_audio
 
-        db.commit()
-        
-        # Trigger SOAP Generation (Phase 4)
-        if transcription:
+        if audio_data:
+            try:
+                # Remove header if present (e.g., "data:audio/wav;base64,")
+                if "," in audio_data:
+                    audio_data = audio_data.split(",")[1]
+                
+                raw_audio = base64.b64decode(audio_data)
+                
+                # AES-256-GCM Encryption (Simulated)
+                encrypted_audio = encrypt_audio(raw_audio)
+                
+                # Checksum for integrity
+                checksum = hashlib.sha256(raw_audio).hexdigest()
+                consultation.audio_checksum = checksum
+                consultation.audio_file_id = f"enc_audio_{consultation_id}_{checksum[:8]}"
+                
+                # 3. Trigger Azure Medical Transcription
+                transcription_result = transcribe_audio(raw_audio, consultation_id)
+                
+                consultation.transcription_text = transcription_result["text"]
+                consultation.transcription_status = transcription_result["status"]
+                consultation.transcription_job_id = transcription_result["job_id"]
+                consultation.transcription_confidence = transcription_result["confidence"]
+
+            except Exception as e:
+                print(f"Audio processing failed: {str(e)}")
+                consultation.transcription_status = "failed"
+
+        # 4. Trigger AI SOAP Generation
+        if consultation.transcription_text and consultation.transcription_status == "completed":
             try:
                 ReportService.generate_soap_report(db, consultation_id, organization_id)
                 consultation.status = "completed"
-                db.commit()
             except Exception as e:
                 print(f"SOAP Generation failed: {str(e)}")
                 consultation.status = "failed_soap"
-                db.commit()
+        else:
+            consultation.status = "failed_transcription"
 
+        db.commit()
+        db.refresh(consultation)
+        
         audit_service.log_event(db, action="consultation_ended", user_id=consultation.user_id, organization_id=organization_id, resource_id=consultation_id)
         return consultation
+

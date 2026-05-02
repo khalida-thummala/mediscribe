@@ -112,6 +112,11 @@ class Consultation(Base):
         nullable=True
     )
 
+    transcription_job_id = Column(
+        String,
+        nullable=True
+    )
+
     transcription_confidence = Column(
         DECIMAL(5,2),
         nullable=True
