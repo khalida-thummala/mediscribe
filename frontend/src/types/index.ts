@@ -111,7 +111,7 @@ export interface CreateConsultationPayload {
   patient_id: string
   consultation_type: string
   chief_complaint: string
-  scheduled_time?: string
+  scheduled_at?: string
 }
 
 // ─── SOAP Report ──────────────────────────────────────────────────────────────

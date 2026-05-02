@@ -59,7 +59,7 @@ export default function ConsultationForm({ patients, onSuccess }: Props) {
 
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>Scheduled Time</label>
-          <input type="datetime-local" {...register('scheduled_time')} className="form-control" />
+          <input type="datetime-local" {...register('scheduled_at')} className="form-control" />
         </div>
       </div>
 
