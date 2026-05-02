@@ -15,7 +15,12 @@ export const authApi = {
 
   getProfile: () => apiClient.get('/auth/me').then((r) => r.data),
 
+  verifyEmail: (token: string) => apiClient.get(`/auth/verify?token=${token}`).then((r) => r.data),
+
   updateProfile: (data: any) => apiClient.put('/auth/me', data).then((r) => r.data),
 
   updateSecurity: (data: any) => apiClient.put('/auth/security', data).then((r) => r.data),
+
+  verifyOtp: (user_id: string, otp: string) => 
+    apiClient.post('/auth/verify-otp', { user_id, otp }).then((r) => r.data),
 }

@@ -1,13 +1,7 @@
-import { useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 
+// Registration is handled via the Login page's register tab
+// This route redirects to /login so users land on the correct UI
 export default function RegisterPage() {
-  const navigate = useNavigate()
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <div>
-        <p>Register page — redirecting to Login</p>
-        <button onClick={() => navigate('/login')}>Go to Login</button>
-      </div>
-    </div>
-  )
+  return <Navigate to="/login" replace />
 }
