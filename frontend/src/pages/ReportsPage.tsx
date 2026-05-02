@@ -1,5 +1,5 @@
 import ReportList from '@/components/reports/ReportList'
-import { FileText, Download } from 'lucide-react'
+import { FileText } from 'lucide-react'
 
 export default function ReportsPage() {
   return (

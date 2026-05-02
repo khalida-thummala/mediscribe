@@ -15,7 +15,7 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleRegisterSuccess = (email: string, userId: string) => {
+  const handleRegisterSuccess = (_email: string, userId: string) => {
     setPendingUserId(userId);
     setTab('login');
   };

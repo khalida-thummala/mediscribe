@@ -1,5 +1,5 @@
 import AuditLogTable from '@/components/audit/AuditLogTable'
-import { ShieldCheck, Lock } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 
 export default function AuditPage() {
   return (

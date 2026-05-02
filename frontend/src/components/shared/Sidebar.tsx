@@ -7,7 +7,7 @@ import { patientsApi } from '@/api/patients'
 import {
   LayoutDashboard, Users, Stethoscope, BrainCircuit,
   FileText, BarChart3, ShieldCheck, Settings, LogOut,
-  Sparkles, ChevronRight
+  Sparkles
 } from 'lucide-react'
 
 const NAV_GROUPS = [
@@ -45,7 +45,7 @@ export default function Sidebar() {
   const user    = useAuthStore((s) => s.user)
   const logout  = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
-  const { sidebarOpen, toggleSidebar } = useUIStore()
+  const { sidebarOpen } = useUIStore()
 
   const { data: patients } = useQuery({
     queryKey: ['patients'],

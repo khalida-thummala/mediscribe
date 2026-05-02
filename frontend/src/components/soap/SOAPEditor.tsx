@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { consultationsApi } from '@/api/consultations'
-import { Save, CheckCircle, Loader2, Download, CloudCheck } from 'lucide-react'
+import { apiClient } from '@/api/client'
+import { Save, CheckCircle, Loader2, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -76,12 +77,12 @@ export default function SOAPEditor({ consultationId }: Props) {
 
   const exportMut = useMutation({
     mutationFn: () => apiClient.get(`/consultations/${consultationId}/export`).then(r => r.data),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       const blob = new Blob([data.content], { type: 'text/plain' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = data.filename
+      a.download = data.filename || 'report.txt'
       a.click()
       toast.success('Report exported successfully')
     },

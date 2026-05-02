@@ -1,5 +1,5 @@
 import SettingsPanel from '@/components/settings/SettingsPanel'
-import { Settings, Shield } from 'lucide-react'
+import { Shield } from 'lucide-react'
 
 export default function SettingsPage() {
   return (

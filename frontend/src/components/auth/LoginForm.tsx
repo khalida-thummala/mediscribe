@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/authStore';
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
-  const setTokens = useAuthStore((s) => s.setTokens);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

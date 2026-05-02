@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, PlusCircle, Info, ChevronRight } from 'lucide-react';
+import { AlertTriangle, PlusCircle, Info } from 'lucide-react';
 
 interface ComparisonData {
   summary: string;

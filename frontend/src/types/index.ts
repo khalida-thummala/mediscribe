@@ -10,6 +10,7 @@ export interface User {
   twofa_enabled: boolean
   timezone: string
   language_preference: string
+  phone?: string
   created_at: string
   last_login: string
 }
