@@ -1,42 +1,152 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
+import { getInitials } from '@/utils'
+import { Bell, Search, Sun, Moon } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/patients': 'Patients',
-  '/consultations': 'Consultations',
-  '/ai-analysis': 'AI Report Analysis',
-  '/reports': 'Reports',
-  '/analytics': 'Analytics',
-  '/audit': 'Audit Trail',
-  '/settings': 'Settings',
+const PAGE_META: Record<string, { title: string; emoji: string }> = {
+  '/dashboard':    { title: 'Dashboard',        emoji: '⊞' },
+  '/patients':     { title: 'Patients',          emoji: '👥' },
+  '/consultations':{ title: 'Consultations',     emoji: '🎙' },
+  '/ai-analysis':  { title: 'AI Report Analysis',emoji: '✦' },
+  '/reports':      { title: 'SOAP Reports',       emoji: '📄' },
+  '/analytics':    { title: 'Analytics',          emoji: '📊' },
+  '/audit':        { title: 'Audit Trail',        emoji: '🛡' },
+  '/settings':     { title: 'Settings',           emoji: '⚙' },
 }
 
 export default function Topbar() {
   const { pathname } = useLocation()
-  const navigate = useNavigate()
-  const title = Object.entries(PAGE_TITLES).find(([k]) => pathname.startsWith(k))?.[1] ?? 'MediScribe'
+  const navigate     = useNavigate()
+  const user         = useAuthStore((s) => s.user)
+  const { theme, toggleTheme, toggleSidebar } = useUIStore()
+
+  const meta = Object.entries(PAGE_META).find(([k]) => pathname.startsWith(k))?.[1]
+              ?? { title: 'MediScribe', emoji: '✦' }
 
   return (
-    <header style={{ height: 60, background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 12, flexShrink: 0 }}>
-      <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: 20, flex: 1 }}>{title}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', minWidth: 220 }}>
-          <span style={{ color: 'var(--text-3)', fontSize: 13 }}>🔍</span>
-          <input placeholder="Search patients, reports…" style={{ border: 'none', background: 'none', fontFamily: 'inherit', fontSize: 13.5, color: 'var(--text)', outline: 'none', flex: 1 }} />
+    <header style={{
+      height: 60,
+      background: 'var(--surface)',
+      borderBottom: '1px solid var(--border)',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 16px',
+      gap: 12,
+      flexShrink: 0,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      transition: 'background 0.3s ease, border-color 0.3s ease',
+    }}>
+      {/* Mobile Menu Toggle */}
+      <button
+        onClick={toggleSidebar}
+        className="mobile-only"
+        style={{
+          width: 36, height: 36, borderRadius: 8,
+          border: 'none', background: 'var(--surface-2)',
+          color: 'var(--text-1)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', cursor: 'pointer',
+        }}
+      >
+        <span style={{ fontSize: 18 }}>☰</span>
+      </button>
+
+      {/* Page Title */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: 18, color: 'var(--text-1)' }}>
+          {meta.title}
         </div>
-        <button
-          onClick={() => toast('No new notifications', { icon: '🔔' })}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, fontSize: 13.5, fontWeight: 500, cursor: 'pointer', border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text)' }}
-        >
-          🔔
-        </button>
-        <button
-          onClick={() => navigate('/consultations')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, fontSize: 13.5, fontWeight: 500, cursor: 'pointer', border: '1px solid var(--teal)', background: 'var(--teal)', color: '#fff' }}
-        >
-          + New Consultation
-        </button>
+      </div>
+
+      {/* Search */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'var(--surface-2)', border: '1.5px solid var(--border)',
+        borderRadius: 10, padding: '7px 13px', minWidth: 220,
+        transition: 'all 0.15s',
+      }}
+        onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--teal)')}
+        onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+      >
+        <Search size={14} color="var(--text-3)" />
+        <input
+          placeholder="Search patients, reports…"
+          style={{
+            border: 'none', background: 'none', fontFamily: 'inherit',
+            fontSize: 13, color: 'var(--text-1)', outline: 'none', flex: 1,
+          }}
+        />
+      </div>
+
+      {/* Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        style={{
+          width: 36, height: 36, borderRadius: 10,
+          border: '1.5px solid var(--border)', background: 'var(--surface)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--text-3)', transition: 'all 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--surface-hover)'
+          e.currentTarget.style.borderColor = 'var(--border-2)'
+          e.currentTarget.style.color = 'var(--text-2)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--surface)'
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = 'var(--text-3)'
+        }}
+      >
+        {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+      </button>
+
+      {/* Notification Bell */}
+      <button
+        onClick={() => toast('No new notifications', { icon: '🔔' })}
+        title="Notifications"
+        style={{
+          width: 36, height: 36, borderRadius: 10,
+          border: '1.5px solid var(--border)', background: 'var(--surface)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--text-3)', transition: 'all 0.15s', position: 'relative',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--surface-hover)'
+          e.currentTarget.style.borderColor = 'var(--border-2)'
+          e.currentTarget.style.color = 'var(--text-2)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--surface)'
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.color = 'var(--text-3)'
+        }}
+      >
+        <Bell size={15} />
+        <span style={{
+          position: 'absolute', top: 7, right: 7,
+          width: 6, height: 6, borderRadius: '50%',
+          background: '#f43f5e', border: '1.5px solid var(--surface)',
+        }} />
+      </button>
+
+      {/* User Avatar */}
+      <div
+        onClick={() => navigate('/settings')}
+        title="Profile & Settings"
+        style={{
+          width: 34, height: 34, borderRadius: 10, cursor: 'pointer', flexShrink: 0,
+          background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(13,148,136,0.3)',
+          transition: 'transform 0.15s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      >
+        {user ? getInitials(user.full_name) : 'DR'}
       </div>
     </header>
   )

@@ -1,87 +1,253 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
 import { getInitials } from '@/utils'
+import { useQuery } from '@tanstack/react-query'
+import { patientsApi } from '@/api/patients'
+import {
+  LayoutDashboard, Users, Stethoscope, BrainCircuit,
+  FileText, BarChart3, ShieldCheck, Settings, LogOut,
+  Sparkles, ChevronRight
+} from 'lucide-react'
 
-const NAV = [
-  { label: 'Main', items: [
-    { to: '/dashboard', icon: '⊞', label: 'Dashboard' },
-    { to: '/patients', icon: '👥', label: 'Patients', badge: '248' },
-    { to: '/consultations', icon: '🎙', label: 'Consultations' },
-  ]},
-  { label: 'Clinical', items: [
-    { to: '/ai-analysis', icon: '✦', label: 'AI Analysis', badge: 'New', badgeColor: '#5a3fad' },
-    { to: '/reports', icon: '📄', label: 'Reports' },
-  ]},
-  { label: 'Insights', items: [
-    { to: '/analytics', icon: '📊', label: 'Analytics' },
-    { to: '/audit', icon: '🛡', label: 'Audit Trail' },
-  ]},
-  { label: 'Account', items: [
-    { to: '/settings', icon: '⚙', label: 'Settings' },
-  ]},
+const NAV_GROUPS = [
+  {
+    label: 'Main',
+    items: [
+      { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard',     color: '#3b82f6' },
+      { to: '/patients',      icon: Users,            label: 'Patients',      color: '#10b981', badge: 'patients' },
+      { to: '/consultations', icon: Stethoscope,      label: 'Consultations', color: '#f59e0b' },
+    ],
+  },
+  {
+    label: 'Clinical',
+    items: [
+      { to: '/ai-analysis', icon: BrainCircuit, label: 'AI Analysis', color: '#7c3aed', tag: 'New' },
+      { to: '/reports',     icon: FileText,     label: 'Reports',     color: '#0d9488' },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { to: '/analytics', icon: BarChart3,   label: 'Analytics',    color: '#f59e0b' },
+      { to: '/audit',     icon: ShieldCheck, label: 'Audit Trail',  color: '#6b7280' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { to: '/settings', icon: Settings, label: 'Settings', color: '#6b7280' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
-  const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
+  const user    = useAuthStore((s) => s.user)
+  const logout  = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const { sidebarOpen, toggleSidebar } = useUIStore()
+
+  const { data: patients } = useQuery({
+    queryKey: ['patients'],
+    queryFn: () => patientsApi.list(),
+  })
+  const patientCount = Array.isArray(patients) ? patients.length : 0
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   return (
-    <nav style={{ width: 240, background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-      {/* Brand */}
-      <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: 22, color: 'var(--teal)' }}>MediScribe</div>
-        <div style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Healthcare Platform v2.0</div>
+    <nav 
+      className={`app-sidebar ${sidebarOpen ? 'open' : 'closed'}`}
+      style={{
+        width: 'var(--sidebar-w, 252px)',
+        background: 'var(--surface)',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        borderRight: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease',
+        zIndex: 50,
+      }}
+    >
+      {/* ── Brand ─────────────────────────────── */}
+      <div style={{ padding: '24px 18px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'var(--grad-teal)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: 'var(--shadow-teal)',
+            flexShrink: 0,
+          }}>
+            <Sparkles size={18} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: 19, color: 'var(--text-1)', lineHeight: 1.1 }}>
+              MediScribe
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2, fontWeight: 700 }}>
+              Healthcare v2.0
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Nav */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-        {NAV.map((section) => (
-          <div key={section.label}>
-            <div style={{ padding: '12px 12px 4px', fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
-              {section.label}
+      {/* ── Navigation ────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px' }}>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} style={{ marginBottom: 12 }}>
+            <div style={{
+              padding: '0 12px 6px',
+              fontSize: 9.5, color: 'var(--text-4)',
+              letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 800,
+            }}>
+              {group.label}
             </div>
-            {section.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                style={({ isActive }) => ({
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 14px', margin: '1px 8px', borderRadius: 8,
-                  cursor: 'pointer', fontSize: 13.5, fontWeight: 500,
-                  textDecoration: 'none',
-                  background: isActive ? 'var(--teal-light)' : 'transparent',
-                  color: isActive ? 'var(--teal)' : 'var(--text-2)',
-                  transition: 'all 0.15s',
-                })}
-              >
-                <span style={{ width: 18, textAlign: 'center', fontSize: 15 }}>{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge && (
-                  <span style={{ background: (item as any).badgeColor || 'var(--teal)', color: '#fff', fontSize: 10, borderRadius: 20, padding: '2px 7px', fontWeight: 600 }}>
-                    {item.badge}
-                  </span>
-                )}
-              </NavLink>
-            ))}
+
+            {group.items.map((item) => {
+              const Icon = item.icon
+              const badgeVal = (item as any).badge === 'patients' && patientCount > 0
+                ? String(patientCount) : undefined
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  style={({ isActive }) => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '10px 12px',
+                    marginBottom: 2,
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    fontSize: 13.5,
+                    fontWeight: isActive ? 600 : 500,
+                    textDecoration: 'none',
+                    color: isActive ? 'var(--text-1)' : 'var(--text-3)',
+                    background: isActive ? 'var(--surface-active)' : 'transparent',
+                    transition: 'all 0.15s ease',
+                  })}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.classList.contains('active')) {
+                      e.currentTarget.style.background = 'var(--surface-hover)'
+                      e.currentTarget.style.color = 'var(--text-2)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!e.currentTarget.classList.contains('active')) {
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.color = 'var(--text-3)'
+                    }
+                  }}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isActive ? 'var(--surface)' : 'var(--surface-2)',
+                        boxShadow: isActive ? 'var(--shadow-xs)' : 'none',
+                        transition: 'all 0.15s',
+                      }}>
+                        <Icon size={14.5} color={isActive ? 'var(--teal)' : 'var(--text-4)'} />
+                      </div>
+
+                      <span style={{ flex: 1 }}>{item.label}</span>
+
+                      {(item as any).tag && (
+                        <span style={{
+                          background: 'var(--grad-violet)',
+                          color: '#fff', fontSize: 8.5, borderRadius: 20,
+                          padding: '1px 6px', fontWeight: 700, letterSpacing: '0.02em',
+                        }}>
+                          {(item as any).tag}
+                        </span>
+                      )}
+
+                      {badgeVal && (
+                        <span style={{
+                          background: 'var(--teal-light)',
+                          color: 'var(--teal)',
+                          fontSize: 10, borderRadius: 20,
+                          padding: '1px 7px', fontWeight: 700,
+                          border: '1px solid var(--teal-glow)',
+                        }}>
+                          {badgeVal}
+                        </span>
+                      )}
+
+                      {isActive && (
+                        <div style={{ width: 4, height: 16, background: 'var(--teal)', borderRadius: 10, marginLeft: 4 }} />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
           </div>
         ))}
       </div>
 
-      {/* User */}
-      <div style={{ padding: '14px 12px', borderTop: '1px solid var(--border)' }}>
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer' }}
-          onClick={() => { logout(); navigate('/login') }}
-          title="Click to sign out"
-        >
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--teal)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>
-            {user ? getInitials(user.full_name) : 'DS'}
+      {/* ── User Card ─────────────────────────── */}
+      <div style={{ padding: '12px 10px 16px', borderTop: '1px solid var(--border)' }}>
+        <div style={{
+          background: 'var(--surface-2)',
+          borderRadius: 12, padding: '10px 12px',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div
+            onClick={() => navigate('/settings')}
+            style={{
+              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+              background: 'var(--grad-teal)',
+              color: '#fff', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            {user ? getInitials(user.full_name) : 'DR'}
           </div>
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 13 }}>{user?.full_name ?? 'Dr. D. Sharma'}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Practitioner · HIPAA</div>
+
+          <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => navigate('/settings')}>
+            <div style={{
+              fontWeight: 600, fontSize: 12, color: 'var(--text-1)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {user?.full_name ?? 'Dr. User'}
+            </div>
+            <div style={{
+              fontSize: 10, color: 'var(--text-4)',
+              textTransform: 'capitalize', marginTop: 1,
+            }}>
+              {user?.role ?? 'Practitioner'}
+            </div>
           </div>
+
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            style={{
+              padding: 6, borderRadius: 6, border: 'none',
+              background: 'transparent', cursor: 'pointer',
+              color: 'var(--text-4)', display: 'flex', alignItems: 'center',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--rose)'
+              e.currentTarget.style.background = 'var(--rose-light)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-4)'
+              e.currentTarget.style.background = 'transparent'
+            }}
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
     </nav>

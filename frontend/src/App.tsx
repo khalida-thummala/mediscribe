@@ -12,6 +12,7 @@ import ReportsPage from '@/pages/ReportsPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
 import AuditPage from '@/pages/AuditPage'
 import SettingsPage from '@/pages/SettingsPage'
+import VerifyEmailPage from '@/pages/VerifyEmailPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -23,6 +24,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify" element={<VerifyEmailPage />} />
       <Route
         path="/"
         element={
