@@ -21,7 +21,13 @@ export default function ConsultationForm({ patients, onSuccess }: Props) {
   })
 
   return (
-    <form onSubmit={handleSubmit((d) => mut.mutate(d))}>
+    <form onSubmit={handleSubmit((d) => {
+      // Clean up empty strings for optional datetime fields to prevent 422 validation errors
+      if (!d.scheduled_at) {
+        delete d.scheduled_at
+      }
+      mut.mutate(d)
+    })}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
