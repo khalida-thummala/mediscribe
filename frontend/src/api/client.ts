@@ -21,17 +21,23 @@ apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    if (error.response?.status === 401 && !original._retry) {
+    const isLoginOrRefresh = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh')
+    
+    if (error.response?.status === 401 && !original._retry && !isLoginOrRefresh) {
       original._retry = true
       try {
         const refreshToken = useAuthStore.getState().refreshToken
+        if (!refreshToken) throw new Error('No refresh token')
+
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
         useAuthStore.getState().setTokens(data.access_token, refreshToken!)
         original.headers.Authorization = `Bearer ${data.access_token}`
         return apiClient(original)
-      } catch {
+      } catch (err) {
         useAuthStore.getState().logout()
-        window.location.href = '/login'
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)

@@ -28,4 +28,8 @@ export const consultationsApi = {
 
   approveReport: (id: string, signature_pin: string) =>
     apiClient.post(`/consultations/${id}/report/approve`, { signature_pin }).then((r) => r.data),
+
+  /** Trigger AI SOAP generation from consultation transcript */
+  generateSoap: (id: string) =>
+    apiClient.post(`/consultations/${id}/generate-soap`).then((r) => r.data),
 }

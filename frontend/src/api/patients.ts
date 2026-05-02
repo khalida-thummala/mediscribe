@@ -1,9 +1,10 @@
 import { apiClient } from './client'
-import type { Patient, CreatePatientPayload, PaginatedResponse, QueryParams } from '@/types'
+import type { Patient, CreatePatientPayload, QueryParams } from '@/types'
 
 export const patientsApi = {
+  /** Backend returns a plain array of Patient objects (no pagination wrapper) */
   list: (params: QueryParams = {}) =>
-    apiClient.get<PaginatedResponse<Patient>>('/patients', { params }).then((r) => r.data),
+    apiClient.get<Patient[]>('/patients', { params }).then((r) => r.data),
 
   get: (id: string) =>
     apiClient.get<Patient>(`/patients/${id}`).then((r) => r.data),
@@ -12,7 +13,7 @@ export const patientsApi = {
     apiClient.post<Patient>('/patients', data).then((r) => r.data),
 
   update: (id: string, data: Partial<Patient>) =>
-    apiClient.put<{ patient_id: string; updated_at: string }>(`/patients/${id}`, data).then((r) => r.data),
+    apiClient.put<Patient>(`/patients/${id}`, data).then((r) => r.data),
 
   delete: (id: string) =>
     apiClient.delete(`/patients/${id}`).then((r) => r.data),

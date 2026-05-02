@@ -29,15 +29,16 @@ export interface RegisterPayload {
 }
 
 export interface AuthResponse {
-  user_id: string
-  email: string
-  full_name: string
-  organization_id: string
-  role: string
   access_token: string
   refresh_token: string
   token_type: string
-  expires_in: number
+  user: {
+    id: string
+    email: string
+    full_name: string
+    role: string
+    organization_id: string
+  }
 }
 
 // ─── Patient ─────────────────────────────────────────────────────────────────
@@ -225,15 +226,13 @@ export interface AnalyticsSummary {
 
 // ─── Audit ────────────────────────────────────────────────────────────────────
 export interface AuditEvent {
-  event_id: string
-  timestamp: string
+  id: string
+  created_at: string
   user_id: string
-  user_name: string
   action: string
   resource: string
   ip_address: string
   status: 'success' | 'failed' | 'info'
-  details?: string
 }
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
