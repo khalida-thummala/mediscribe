@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { getInitials } from '@/utils'
-import { Bell, Search, Sun, Moon } from 'lucide-react'
+import { Bell, Search, Sun, Moon, ArrowLeft, Menu } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const PAGE_META: Record<string, { title: string; emoji: string }> = {
@@ -43,27 +43,49 @@ export default function Topbar() {
         onClick={toggleSidebar}
         className="mobile-only"
         style={{
-          width: 36, height: 36, borderRadius: 8,
-          border: 'none', background: 'var(--surface-2)',
+          width: 38, height: 38, borderRadius: 10,
+          border: '1.5px solid var(--border)', background: 'var(--surface-2)',
           color: 'var(--text-1)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', cursor: 'pointer',
+          justifyContent: 'center', cursor: 'pointer', flexShrink: 0
         }}
       >
-        <span style={{ fontSize: 18 }}>☰</span>
+        <Menu size={20} />
       </button>
 
-      {/* Page Title */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: 18, color: 'var(--text-1)' }}>
+      {/* Back Button & Page Title */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
+        {pathname !== '/dashboard' && (
+          <button
+            onClick={() => window.history.back()}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--surface)',
+              color: 'var(--text-2)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', flexShrink: 0
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface)')}
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
+        <div style={{ 
+          fontFamily: 'DM Serif Display, serif', 
+          fontSize: 'clamp(15px, 4vw, 18px)', 
+          color: 'var(--text-1)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
           {meta.title}
         </div>
       </div>
 
-      {/* Search */}
-      <div style={{
+      {/* Search - Hidden on Mobile */}
+      <div className="desktop-only" style={{
         display: 'flex', alignItems: 'center', gap: 8,
         background: 'var(--surface-2)', border: '1.5px solid var(--border)',
-        borderRadius: 10, padding: '7px 13px', minWidth: 220,
+        borderRadius: 10, padding: '7px 13px', minWidth: 200, maxWidth: 300,
         transition: 'all 0.15s',
       }}
         onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--teal)')}

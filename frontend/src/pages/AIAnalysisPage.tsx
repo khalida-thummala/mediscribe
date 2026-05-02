@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import FileUploadPanel from '@/components/ai-analysis/FileUploadPanel'
 import AnalysisResultPanel from '@/components/ai-analysis/AnalysisResultPanel'
-import { BrainCircuit, Upload, Sparkles, ArrowLeft } from 'lucide-react'
+import { BrainCircuit, Upload, Sparkles } from 'lucide-react'
 
 export default function AIAnalysisPage() {
   const [analysisId, setAnalysisId] = useState<string | null>(null)
@@ -9,13 +9,7 @@ export default function AIAnalysisPage() {
   return (
     <div className="fade-in">
       {/* ── Header ─────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <button 
-          onClick={() => window.history.back()}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: 'var(--text-2)', fontWeight: 500 }}
-        >
-          <ArrowLeft size={15} /> Back
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 7,
           background: 'var(--violet-light)', border: '1px solid var(--border)',
