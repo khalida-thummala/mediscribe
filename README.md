@@ -87,5 +87,8 @@ The React application will be available at `http://localhost:5173` (or the port 
 - **Data Privacy**: MediScribe utilizes strict role checks to ensure patient data is only accessible to authorized practitioners.
 - **HIPAA Considerations**: The UI is designed with HIPAA compliance standards in mind, utilizing audit trails and session-based timeouts.
 
-## 🤝 Contributing
-For feature requests or bug reports, please create a new branch, ensure your code passes all linting rules, and submit a pull request for review.
+## Author
+
+**Thummala Khalida**
+
+Frontend Developer – MediScribe

@@ -24,20 +24,29 @@ export default function ReportList() {
     try {
       const res = await reportsApi.export(reportId, { format: fmt, include_signatures: true, include_metadata: true })
       
-      // Since backend export is simulated (#), we'll simulate a download here
-      const content = `MediScribe SOAP Report\nID: ${res.report_id}\n\nSubjective: ${res.subjective}\nObjective: ${res.objective}\nAssessment: ${res.assessment}\nPlan: ${res.plan}\n\nGenerated via MediScribe AI`
+      // Build downloadable file from ExportResult fields
+      const content = [
+        'MediScribe — Clinical SOAP Report',
+        '=====================================',
+        `Report ID : ${res.report_id}`,
+        `Format    : ${res.export_format?.toUpperCase() ?? fmt.toUpperCase()}`,
+        `File      : ${res.file_name ?? 'report'}`,
+        '',
+        'Full report content is available when connected to the production backend.',
+        'Generated via MediScribe AI Platform',
+      ].join('\n')
       const blob = new Blob([content], { type: 'text/plain' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = res.file_name.replace('.pdf', `.${fmt === 'pdf' ? 'txt' : 'docx'}`)
+      a.download = res.file_name ?? `report-${reportId}.${fmt}`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
       
       toast.success(`Report downloaded as ${fmt.toUpperCase()}`)
-    } catch (err) {
+    } catch {
       toast.error('Failed to export report')
     }
   }
