@@ -1,0 +1,146 @@
+import { useState } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { apiClient } from '@/api/client'
+import { CheckCircle, Loader2, FileText, Activity } from 'lucide-react'
+import toast from 'react-hot-toast'
+import ComparisonPanel from './ComparisonPanel'
+
+interface Props {
+  analysisId: string
+}
+
+export default function AnalysisResultPanel({ analysisId }: Props) {
+  const [activeTab, setActiveTab] = useState<'soap' | 'audit'>('soap')
+  
+  const { data, isLoading } = useQuery({
+    queryKey: ['analysis', analysisId],
+    queryFn: () => apiClient.get(`/ai-analysis/${analysisId}`).then((r) => r.data),
+  })
+
+  const approveMut = useMutation({
+    mutationFn: () => apiClient.post(`/ai-analysis/${analysisId}/approve`, { notes: 'Approved via UI' }),
+    onSuccess: () => toast.success('Analysis approved and saved'),
+    onError: () => toast.error('Failed to approve'),
+  })
+
+  if (isLoading) return (
+    <div style={{ textAlign: 'center', padding: 40 }}>
+      <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} color="var(--teal)" />
+      <div style={{ marginTop: 10, color: 'var(--text-3)', fontSize: 13 }}>Loading analysis…</div>
+    </div>
+  )
+
+  if (!data || data.error) return (
+    <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Analysis not found</div>
+  )
+
+  const sections = [
+    { key: 'generated_subjective', label: 'Subjective', color: '#5a3fad' },
+    { key: 'generated_objective', label: 'Objective', color: '#0e7c4a' },
+    { key: 'generated_assessment', label: 'Assessment', color: '#e67e22' },
+    { key: 'generated_plan', label: 'Plan', color: '#2980b9' },
+  ]
+
+  return (
+    <div>
+      {/* Tabs */}
+      <div style={{ 
+        display: 'flex', 
+        gap: 20, 
+        borderBottom: '1px solid var(--border)', 
+        marginBottom: 20,
+        padding: '0 4px'
+      }}>
+        <button
+          onClick={() => setActiveTab('soap')}
+          style={{
+            padding: '10px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            color: activeTab === 'soap' ? 'var(--teal)' : 'var(--text-3)',
+            borderBottom: activeTab === 'soap' ? '2px solid var(--teal)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          <FileText size={15} /> Generated SOAP
+        </button>
+        <button
+          onClick={() => setActiveTab('audit')}
+          style={{
+            padding: '10px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            color: activeTab === 'audit' ? 'var(--teal)' : 'var(--text-3)',
+            borderBottom: activeTab === 'audit' ? '2px solid var(--teal)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          <Activity size={15} /> Clinical Audit
+        </button>
+      </div>
+
+      {activeTab === 'soap' ? (
+        <div className="fade-in">
+          {/* Confidence */}
+          <div style={{ background: 'var(--surface-hover)', borderRadius: 10, padding: '12px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-2)' }}>AI Confidence Score</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#0e7c4a' }}>
+              {data.confidence_score !== undefined && data.confidence_score !== null 
+                ? Number(data.confidence_score).toFixed(1) 
+                : '—'}%
+            </span>
+          </div>
+
+          {/* SOAP Sections */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+            {sections.map(({ key, label, color }) => (
+              <div key={key} style={{ border: `1px solid ${color}30`, borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ background: `${color}10`, padding: '8px 14px', fontSize: 11.5, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+                <div style={{ padding: '12px 14px', fontSize: 13, lineHeight: 1.7, color: 'var(--text-2)', whiteSpace: 'pre-wrap' }}>
+                  {(data as any)[key] || <span style={{ color: 'var(--text-3)', fontStyle: 'italic' }}>No content generated</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Key Entities */}
+          {data.key_entities && Object.keys(data.key_entities).length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 10 }}>Key Medical Entities</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {Object.entries(data.key_entities).map(([k, v]) => (
+                  <span key={k} style={{ padding: '4px 12px', background: 'var(--teal-light)', color: 'var(--teal)', borderRadius: 20, fontSize: 12, fontWeight: 500 }}>
+                    {String(v)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="fade-in">
+          <ComparisonPanel data={data.comparison_data} />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+        <button
+          onClick={() => approveMut.mutate()}
+          disabled={approveMut.isPending}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: '#0e7c4a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}
+        >
+          <CheckCircle size={15} /> {approveMut.isPending ? 'Approving…' : 'Approve & Save'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
