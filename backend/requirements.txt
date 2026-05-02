@@ -9,3 +9,5 @@ python-multipart
 requests
 openai
 azure-cognitiveservices-speech
+pydantic-settings
+email-validator

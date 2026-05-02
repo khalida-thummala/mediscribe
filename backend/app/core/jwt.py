@@ -12,35 +12,16 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 # Access token → short expiry
 def create_access_token(data: dict):
     to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(minutes=30)
-
-    to_encode.update({
-        "exp": expire
-    })
-
-    return jwt.encode(
-        to_encode,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # Refresh token → long expiry
 def create_refresh_token(data: dict):
     to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(days=7)
-
-    to_encode.update({
-        "exp": expire
-    })
-
-    return jwt.encode(
-        to_encode,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
+    expire = datetime.utcnow() + timedelta(days=30)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 # Verify token

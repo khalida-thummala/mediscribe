@@ -72,6 +72,21 @@ class User(Base):
         default=False
     )
 
+    phone_verified = Column(
+        Boolean,
+        default=False
+    )
+
+    otp = Column(
+        String(10),
+        nullable=True
+    )
+
+    otp_expiry = Column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
     # Contact info
     phone = Column(
         String(20),

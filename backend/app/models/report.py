@@ -27,7 +27,7 @@ class Report(Base):
     consultation_id = Column(
         String,
         ForeignKey("consultations.consultation_id"),
-        nullable=False
+        nullable=True
     )
 
     user_id = Column(

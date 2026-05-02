@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
 
 
 class UserCreate(BaseModel):
@@ -13,3 +15,24 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class User(BaseModel):
+    user_id: str
+    email: str
+    full_name: str
+    phone: Optional[str] = None
+    license_number: str
+    organization_id: str
+    role: str
+    status: str
+    email_verified: Optional[bool] = False
+    twofa_enabled: Optional[bool] = False
+    timezone: Optional[str] = None
+    language_preference: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

@@ -28,6 +28,12 @@ class Analysis(Base):
         nullable=False
     )
 
+    patient_id = Column(
+        String,
+        ForeignKey("patients.patient_id"),
+        nullable=True
+    )
+
     user_id = Column(
         String,
         ForeignKey("users.user_id"),
