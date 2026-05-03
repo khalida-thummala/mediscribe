@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-const API_KEY = import.meta.env.VITE_AZURE_OPENAI_KEY
-const ENDPOINT = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT
+const API_KEY = (import.meta as any).env.VITE_AZURE_OPENAI_KEY
+const ENDPOINT = (import.meta as any).env.VITE_AZURE_OPENAI_ENDPOINT
 
 /**
  * Direct service for calling Azure OpenAI from the frontend.

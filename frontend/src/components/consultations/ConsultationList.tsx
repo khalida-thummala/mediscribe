@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { consultationsApi } from '@/api/consultations'
 import { patientsApi } from '@/api/patients'
-import { Plus, Mic, StopCircle, Eye, Stethoscope, Calendar, Clock, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Mic, StopCircle, Stethoscope, Calendar, Clock, Edit2, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import Modal from '@/components/shared/Modal'
 import ConsultationForm from './ConsultationForm'
@@ -47,15 +47,6 @@ export default function ConsultationList() {
     onError: () => toast.error('Failed to delete consultation'),
   })
 
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => consultationsApi.update(id, data),
-    onSuccess: () => {
-      setEditItem(null)
-      qc.invalidateQueries({ queryKey: ['consultations'] })
-      toast.success('Consultation updated')
-    },
-    onError: () => toast.error('Failed to update consultation'),
-  })
 
   const { data: patientsData } = useQuery({
     queryKey: ['patients'],
