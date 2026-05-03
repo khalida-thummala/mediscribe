@@ -30,6 +30,12 @@ class Report(Base):
         nullable=True
     )
 
+    patient_id = Column(
+        String,
+        ForeignKey("patients.patient_id"),
+        nullable=True
+    )
+
     user_id = Column(
         String,
         ForeignKey("users.user_id"),

@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import Modal from '@/components/shared/Modal'
 import ConsultationForm from './ConsultationForm'
 import RecordingPanel from './RecordingPanel'
+import SOAPEditor from '@/components/soap/SOAPEditor'
 import toast from 'react-hot-toast'
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; label: string }> = {
@@ -23,6 +24,7 @@ export default function ConsultationList() {
   const qc = useQueryClient()
   const [showNew, setShowNew] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
+  const [editSoapId, setEditSoapId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -67,7 +69,7 @@ export default function ConsultationList() {
   const stats = [
     { label: 'Total', value: consultations.length, icon: Stethoscope, color: '#3b82f6', bg: '#eff6ff' },
     { label: 'Completed', value: consultations.filter((c: any) => c.status === 'completed').length, icon: Clock, color: '#10b981', bg: '#ecfdf5' },
-    { label: 'Scheduled', value: consultations.filter((c: any) => c.status === 'scheduled').length, icon: Calendar, color: '#f59e0b', bg: '#fffbeb' },
+    { label: 'Scheduled', value: consultations.filter((c: any) => c.status === 'scheduled' || c.status === 'pending').length, icon: Calendar, color: '#f59e0b', bg: '#fffbeb' },
     { label: 'Recording', value: consultations.filter((c: any) => c.status === 'in_progress').length, icon: Mic, color: '#f43f5e', bg: '#fff1f2' },
   ]
 
@@ -240,19 +242,34 @@ export default function ConsultationList() {
                         )}
 
                         {c.status === 'completed' && (
-                          <button
-                            onClick={() => window.location.href = `/consultations/${c.consultation_id}/soap`}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 5,
-                              padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
-                              background: '#7c3aed', color: '#fff',
-                              border: 'none', fontSize: 12, fontWeight: 600,
-                              transition: 'all 0.15s',
-                              boxShadow: '0 2px 4px rgba(124, 58, 237, 0.2)'
-                            }}
-                          >
-                            <Stethoscope size={12} /> View SOAP
-                          </button>
+                          <div style={{ display: 'flex', gap: 5 }}>
+                            <button
+                              onClick={() => window.location.href = `/consultations/${c.consultation_id}/soap`}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                                background: '#7c3aed', color: '#fff',
+                                border: 'none', fontSize: 12, fontWeight: 600,
+                                transition: 'all 0.15s',
+                                boxShadow: '0 2px 4px rgba(124, 58, 237, 0.2)'
+                              }}
+                            >
+                              <Stethoscope size={12} /> View SOAP
+                            </button>
+                            <button
+                              onClick={() => setEditSoapId(c.consultation_id)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                                background: '#fff', color: '#7c3aed',
+                                border: '1px solid #ddd6fe', fontSize: 12, fontWeight: 600,
+                                transition: 'all 0.15s',
+                              }}
+                              title="Edit SOAP Note"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
                         )}
                         
                         {/* Edit/Delete Buttons */}
@@ -302,6 +319,12 @@ export default function ConsultationList() {
             initialData={editItem}
             onSuccess={() => { setEditItem(null); qc.invalidateQueries({ queryKey: ['consultations'] }) }}
           />
+        )}
+      </Modal>
+
+      <Modal open={!!editSoapId} onClose={() => setEditSoapId(null)} title="Edit SOAP Report" width={800}>
+        {editSoapId && (
+          <SOAPEditor consultationId={editSoapId} />
         )}
       </Modal>
 

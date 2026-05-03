@@ -18,8 +18,7 @@ def get_consultation_trends(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    trends = AnalyticsService.get_consultation_trends(db, current_user.organization_id)
-    return {"trends": trends}
+    return AnalyticsService.get_consultation_trends(db, current_user.organization_id)
 
 @router.get("/performance")
 def get_performance_metrics(

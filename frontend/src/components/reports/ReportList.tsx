@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { reportsApi } from '@/api/reports'
-import { FileText, Download, CheckCircle2, Clock, PenLine, Archive } from 'lucide-react'
+import { patientsApi } from '@/api/patients'
+import { FileText, Download, CheckCircle2, Clock, PenLine, Archive, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
+import SOAPEditor from '@/components/soap/SOAPEditor'
+import Modal from '@/components/shared/Modal'
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; icon: any; label: string }> = {
   approved: { color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', icon: CheckCircle2, label: 'Approved' },
@@ -13,18 +17,29 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string;
 }
 
 export default function ReportList() {
+  const [editSoapId, setEditSoapId] = useState<string | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['reports'],
     queryFn: () => reportsApi.list(),
   })
 
+  const { data: patientsData } = useQuery({
+    queryKey: ['patients'],
+    queryFn: () => patientsApi.list(),
+  })
+
   const reports = Array.isArray(data) ? data : (data as any)?.data ?? []
+  const patients = Array.isArray(patientsData) ? patientsData : (patientsData as any)?.data ?? []
+  
+  const getPatient = (report: any) => {
+    return patients.find((p: any) => p.patient_id === report.patient_id)
+  }
 
   const handleExport = async (reportId: string, fmt: 'pdf' | 'docx') => {
     try {
       const res = await reportsApi.export(reportId, { format: fmt, include_signatures: true, include_metadata: true })
       
-      // Build downloadable file from ExportResult fields
       const content = [
         'MediScribe — Clinical SOAP Report',
         '=====================================',
@@ -111,15 +126,14 @@ export default function ReportList() {
           <table className="data-table">
             <thead>
               <tr>
-                {['Report', 'Status', 'Created', 'Approved By', 'Export'].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
+                {['Report', 'Patient', 'Status', 'Created', 'Actions'].map((h) => (h === 'Actions' ? <th key={h} style={{ textAlign: 'right' }}>{h}</th> : <th key={h}>{h}</th>))}
               </tr>
             </thead>
             <tbody>
               {reports.map((r: any) => {
                 const st = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.draft
                 const StatusIcon = st.icon
+                const patient = getPatient(r)
                 return (
                   <tr key={r.report_id}>
                     <td>
@@ -142,6 +156,20 @@ export default function ReportList() {
                       </div>
                     </td>
                     <td>
+                      {patient ? (
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)' }}>
+                            {patient.first_name} {patient.last_name}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                            #{patient.patient_id?.slice(0, 8)}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-4)', fontSize: 12 }}>Unlinked Patient</span>
+                      )}
+                    </td>
+                    <td>
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         padding: '3px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 600,
@@ -155,18 +183,20 @@ export default function ReportList() {
                       <br />
                       <span style={{ fontSize: 11 }}>{r.created_at ? format(new Date(r.created_at), 'h:mm a') : ''}</span>
                     </td>
-                    <td style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                      {r.approved_by ? (
-                        <code style={{
-                          fontSize: 11, background: 'var(--surface-2)', padding: '2px 7px',
-                          borderRadius: 6, border: '1px solid var(--border)',
-                        }}>
-                          {r.approved_by.slice(0, 8)}…
-                        </code>
-                      ) : '—'}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 7 }}>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 7, justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => setEditSoapId(r.consultation_id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                            background: '#7c3aed', color: '#fff',
+                            border: 'none', fontSize: 11.5, fontWeight: 600,
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <Edit2 size={12} /> Edit
+                        </button>
                         {(['pdf', 'docx'] as const).map((fmt) => (
                           <button
                             key={fmt}
@@ -178,8 +208,6 @@ export default function ReportList() {
                               fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)',
                               transition: 'all 0.15s', textTransform: 'uppercase',
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--teal-light)'; e.currentTarget.style.color = 'var(--teal-dark)'; e.currentTarget.style.borderColor = '#99f6e4'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                           >
                             <Download size={12} /> {fmt}
                           </button>
@@ -193,6 +221,12 @@ export default function ReportList() {
           </table>
         )}
       </div>
+
+      <Modal open={!!editSoapId} onClose={() => setEditSoapId(null)} title="Edit SOAP Report" width={800}>
+        {editSoapId && (
+          <SOAPEditor consultationId={editSoapId} />
+        )}
+      </Modal>
     </div>
   )
 }

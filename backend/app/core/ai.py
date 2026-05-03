@@ -1,12 +1,9 @@
 import requests
-import os
 import json
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ENDPOINT = os.getenv("ENDPOINT")
+OPENAI_API_KEY = settings.OPENAI_API_KEY
+ENDPOINT = settings.ENDPOINT
 
 def generate_soap(text: str):
     if not OPENAI_API_KEY or OPENAI_API_KEY == "sk-mock-key":

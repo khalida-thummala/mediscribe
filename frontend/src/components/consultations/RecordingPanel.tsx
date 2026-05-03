@@ -31,7 +31,11 @@ export default function RecordingPanel({ consultationId, onComplete }: Props) {
       toast.success('Consultation ended — SOAP generation triggered')
       setTimeout(onComplete, 3000)
     },
-    onError: () => { toast.error('Failed to end consultation'); setPhase('idle') },
+    onError: (err: any) => { 
+      const msg = err.response?.data?.detail ?? 'Failed to end consultation'
+      toast.error(msg)
+      setPhase('idle') 
+    },
   })
 
   const handleStart = async () => {

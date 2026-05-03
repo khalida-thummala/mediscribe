@@ -13,5 +13,11 @@ services:
         value: HS256
       - key: OPENAI_API_KEY
         sync: false
+      - key: AZURE_SPEECH_KEY
+        sync: false
+      - key: AZURE_SPEECH_REGION
+        value: eastus
       - key: ENDPOINT
         sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"

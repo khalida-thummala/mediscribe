@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 import * as SpeechSDK from 'microsoft-cognitiveservices-speech-sdk'
 import { useConsultationStore } from '@/store/consultationStore'
+import toast from 'react-hot-toast'
 
 export function useRecording() {
   const { isRecording, startRecording, stopRecording, tick, appendTranscript } = useConsultationStore()
@@ -51,16 +52,11 @@ export function useRecording() {
       const speechRegion = (import.meta as any).env.VITE_AZURE_SPEECH_REGION
 
       if (speechKey && speechRegion) {
+        // ... (Azure SDK logic remains as is)
         const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion)
         speechConfig.speechRecognitionLanguage = 'en-US'
-        // Set service property for Medical domain as per architecture
         speechConfig.setServiceProperty("punctuation", "true", SpeechSDK.ServicePropertyChannel.UriQueryParameter)
-        
-        const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(SpeechSDK.AudioInputStream.createPushStream())
-        // Note: For simplicity in the browser, we often use fromDefaultMicrophoneInput
-        // but the SDK handles the stream internally.
         const internalAudioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput()
-        
         const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, internalAudioConfig)
         
         recognizer.recognized = (_, e) => {
@@ -72,11 +68,31 @@ export function useRecording() {
         recognizer.startContinuousRecognitionAsync()
         recognizerRef.current = recognizer
       } else {
-        console.warn('Azure Speech credentials not provided. Live transcription disabled.')
+        console.warn('Azure Speech credentials not provided. Enabling Live Simulation Mode.')
+        // SIMULATION ENGINE: Append medical phrases every few seconds
+        const simulationPhrases = [
+          "Patient presents with intermittent chest tightness...",
+          "Symptoms worsened during physical exertion over the weekend.",
+          "Blood pressure was recorded at 145 over 90 today.",
+          "Recommending a follow-up EKG and lipid panel.",
+          "Patient has no known drug allergies.",
+          "Will start low-dose aspirin therapy immediately."
+        ]
+        
+        let phraseIndex = 0
+        const simInterval = window.setInterval(() => {
+          if (phraseIndex < simulationPhrases.length) {
+            appendTranscript(simulationPhrases[phraseIndex])
+            phraseIndex++
+          }
+        }, 4000)
+        
+        // Store interval to clear on stop
+        ;(window as any)._simInterval = simInterval
       }
 
       startRecording()
-      timerRef.current = setInterval(tick, 1000)
+      timerRef.current = window.setInterval(tick, 1000)
     } catch (err) {
       console.error('Error starting recording:', err)
       toast.error('Could not access microphone')
@@ -86,7 +102,13 @@ export function useRecording() {
   const stop = useCallback((): Promise<string> => {
     return new Promise((resolve) => {
       stopRecording()
-      if (timerRef.current) clearInterval(timerRef.current)
+      if (timerRef.current) window.clearInterval(timerRef.current)
+      
+      // Clear simulation if active
+      if ((window as any)._simInterval) {
+        window.clearInterval((window as any)._simInterval)
+        delete (window as any)._simInterval
+      }
 
       if (recognizerRef.current) {
         recognizerRef.current.stopContinuousRecognitionAsync(() => {

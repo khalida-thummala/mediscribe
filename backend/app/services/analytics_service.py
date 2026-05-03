@@ -78,30 +78,37 @@ class AnalyticsService:
         
         total_c = sum(r[1] for r in type_results) or 1
         colors = ["#0d6e6e", "#5a3fad", "#e67e22", "#2980b9", "#27ae60"]
-        by_type = [
-            {
-                "label": r[0].capitalize(),
+        by_type = []
+        for i, r in enumerate(type_results):
+            label = str(r[0] or "General").capitalize()
+            by_type.append({
+                "label": label,
                 "pct": round((r[1] / total_c) * 100, 1),
                 "color": colors[i % len(colors)]
-            } for i, r in enumerate(type_results)
-        ]
+            })
 
-        # Monthly volume for the last 6 months
+        # Monthly volume for the last 6 months (Robust PostgreSQL compatible version)
         monthly = []
         for i in range(5, -1, -1):
-            target_month = (end_date.month - i - 1) % 12 + 1
-            target_year = end_date.year + (end_date.month - i - 1) // 12
-            month_name = datetime(target_year, target_month, 1).strftime("%b")
+            # Calculate the target date for each of the last 6 months
+            first_of_curr_month = end_date.replace(day=1)
+            target_start = (first_of_curr_month - timedelta(days=i*30)).replace(day=1, hour=0, minute=0, second=0)
+            
+            month_name = target_start.strftime("%b")
+            
+            # Use simple range filtering which is much more reliable across DB types
+            next_month = (target_start + timedelta(days=32)).replace(day=1)
             
             count = db.query(Consultation).filter(
                 Consultation.organization_id == organization_id,
-                func.extract('month', Consultation.created_at) == target_month,
-                func.extract('year', Consultation.created_at) == target_year
+                Consultation.created_at >= target_start,
+                Consultation.created_at < next_month
             ).count()
             
             monthly.append({
                 "label": month_name,
-                "h": count * 10, # Scaling for visualization
+                "h": max(count * 20, 10) if count > 0 else 0, # Min height for visibility
+                "count": count,
                 "current": i == 0
             })
 

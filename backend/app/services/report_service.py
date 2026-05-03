@@ -77,8 +77,15 @@ class ReportService:
         if not consultation or not consultation.transcription_text:
             return None
 
-        # Call OpenAI
-        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        # Call OpenAI (Support both Standard and Azure OpenAI)
+        if "openai.azure.com" in settings.ENDPOINT:
+            client = openai.AzureOpenAI(
+                api_key=settings.OPENAI_API_KEY,
+                api_version="2025-01-01-preview",
+                azure_endpoint=settings.ENDPOINT.split("/openai/")[0]
+            )
+        else:
+            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
         
         system_prompt = """
         You are a professional medical scribe. Convert the following clinical consultation transcription into a structured SOAP note.
@@ -88,8 +95,13 @@ class ReportService:
         
         user_prompt = f"Transcription: {consultation.transcription_text}"
         
+        # Determine model name from endpoint or default
+        model_name = "gpt-4"
+        if "deployments/" in settings.ENDPOINT:
+            model_name = settings.ENDPOINT.split("deployments/")[1].split("/")[0]
+
         response = client.chat.completions.create(
-            model="gpt-4", # Or your configured model
+            model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -103,6 +115,7 @@ class ReportService:
         # Create the report record
         new_report = Report(
             consultation_id=consultation_id,
+            patient_id=consultation.patient_id,
             user_id=consultation.user_id,
             organization_id=organization_id,
             subjective=soap_data.get("subjective", ""),

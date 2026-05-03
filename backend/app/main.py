@@ -1,8 +1,33 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 from app.db.base import Base
 from app.db.session import engine
+from app.core.config import settings
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("mediscribe")
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description="Production-grade healthcare documentation platform",
+    version=settings.VERSION
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # models
 from app.models.user import User
@@ -23,23 +48,11 @@ from app.api.analytics import router as analytics_router
 from app.api.audit import router as audit_router
 from app.api.speech import router as speech_router
 
-app = FastAPI(
-    title="MediScribe API",
-    description="Production-grade healthcare documentation platform",
-    version="2.0.0"
-)
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Create all database tables
-Base.metadata.create_all(bind=engine)
+# Create all database tables (Note: In production with migrations, this might be handled by Alembic)
+@app.on_event("startup")
+def on_startup():
+    logger.info("Starting MediScribe API...")
+    Base.metadata.create_all(bind=engine)
 
 api_v1 = APIRouter(prefix="/api/v1")
 

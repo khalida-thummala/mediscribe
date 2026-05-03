@@ -1,12 +1,9 @@
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-import os
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkeythatisverylongandsecure")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 
 # Access token → short expiry

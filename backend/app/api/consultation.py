@@ -104,24 +104,28 @@ def end_consultation(
         require_role(["admin", "practitioner"])
     )
 ):
-    consultation = ConsultationService.end_consultation(
-        db, 
-        consultation_id, 
-        current_user.organization_id,
-        audio_data=data.audio_data
-    )
+    try:
+        consultation = ConsultationService.end_consultation(
+            db, 
+            consultation_id, 
+            current_user.organization_id,
+            audio_data=data.audio_data
+        )
 
-    if not consultation:
-        raise HTTPException(status_code=404, detail="Consultation not found")
+        if not consultation:
+            raise HTTPException(status_code=404, detail="Consultation not found")
 
-    return {
-        "consultation_id": consultation.consultation_id,
-        "status": consultation.status,
-        "ended_at": consultation.ended_at,
-        "duration_minutes": consultation.duration_minutes,
-        "transcription_job_id": getattr(consultation, "transcription_job_id", "pending"),
-        "transcription_status": consultation.transcription_status
-    }
+        return {
+            "consultation_id": consultation.consultation_id,
+            "status": consultation.status,
+            "ended_at": consultation.ended_at,
+            "duration_minutes": consultation.duration_minutes,
+            "transcription_job_id": getattr(consultation, "transcription_job_id", "pending"),
+            "transcription_status": consultation.transcription_status
+        }
+    except Exception as e:
+        print(f"CRITICAL ERROR in end_consultation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
 
 
 
