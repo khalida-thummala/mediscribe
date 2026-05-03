@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from app.models.consultation import Consultation
 from app.schemas.consultation import ConsultationCreate
@@ -11,18 +11,34 @@ from app.services.report_service import ReportService
 class ConsultationService:
     @staticmethod
     def create_consultation(db: Session, data: ConsultationCreate, user_id: str, organization_id: str):
-        new_consultation = Consultation(
-            **data.dict(),
-            user_id=user_id,
-            organization_id=organization_id,
-            status="pending"
-        )
-        db.add(new_consultation)
-        db.commit()
-        db.refresh(new_consultation)
-        
-        audit_service.log_event(db, action="consultation_created", user_id=user_id, organization_id=organization_id, resource_id=new_consultation.consultation_id)
-        return new_consultation
+        try:
+            new_consultation = Consultation(
+                **data.dict(),
+                user_id=user_id,
+                organization_id=organization_id,
+                status="pending"
+            )
+            db.add(new_consultation)
+            db.commit()
+            db.refresh(new_consultation)
+            
+            # Log audit event (failsafe)
+            try:
+                audit_service.log_event(
+                    db, 
+                    action="consultation_created", 
+                    user_id=user_id, 
+                    organization_id=organization_id, 
+                    resource_id=new_consultation.consultation_id
+                )
+            except Exception as audit_err:
+                print(f"Audit logging failed: {str(audit_err)}")
+                
+            return new_consultation
+        except Exception as e:
+            print(f"CRITICAL: Consultation creation failed! Error type: {type(e).__name__}, Message: {str(e)}")
+            db.rollback()
+            raise e
 
     @staticmethod
     def get_consultations(db: Session, organization_id: str) -> List[Consultation]:
@@ -45,8 +61,8 @@ class ConsultationService:
         ).first()
         
         if consultation:
-            consultation.status = "recording"
-            consultation.started_at = datetime.utcnow()
+            consultation.status = "in_progress"
+            consultation.started_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(consultation)
             audit_service.log_event(db, action="consultation_started", user_id=consultation.user_id, organization_id=organization_id, resource_id=consultation_id)
@@ -66,7 +82,7 @@ class ConsultationService:
             return None
 
         consultation.status = "processing"
-        consultation.ended_at = datetime.utcnow()
+        consultation.ended_at = datetime.now(timezone.utc)
         
         # 1. Calculate duration
         if consultation.started_at:
@@ -121,4 +137,35 @@ class ConsultationService:
         
         audit_service.log_event(db, action="consultation_ended", user_id=consultation.user_id, organization_id=organization_id, resource_id=consultation_id)
         return consultation
+
+    @staticmethod
+    def update_consultation(db: Session, consultation_id: str, organization_id: str, data: dict):
+        consultation = db.query(Consultation).filter(
+            Consultation.consultation_id == consultation_id,
+            Consultation.organization_id == organization_id
+        ).first()
+        
+        if not consultation:
+            return None
+            
+        for key, value in data.items():
+            if hasattr(consultation, key):
+                setattr(consultation, key, value)
+        
+        db.commit()
+        db.refresh(consultation)
+        return consultation
+
+    @staticmethod
+    def delete_consultation(db: Session, consultation_id: str, organization_id: str):
+        consultation = db.query(Consultation).filter(
+            Consultation.consultation_id == consultation_id,
+            Consultation.organization_id == organization_id
+        ).first()
+        
+        if consultation:
+            db.delete(consultation)
+            db.commit()
+            return True
+        return False
 

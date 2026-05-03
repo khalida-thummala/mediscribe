@@ -86,18 +86,11 @@ def start_consultation(
         require_role(["admin", "practitioner"])
     )
 ):
-    consultation = db.query(Consultation).filter(
-        Consultation.consultation_id == consultation_id
-    ).first()
-
+    consultation = ConsultationService.start_consultation(
+        db, consultation_id, current_user.organization_id
+    )
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
-
-    consultation.status = "in_progress"
-    consultation.started_at = datetime.now(timezone.utc)
-    consultation.transcription_status = "in_progress"
-
-    db.commit()
 
     return {"message": "Consultation started"}
 
@@ -257,3 +250,30 @@ def export_consultation_report(
         raise HTTPException(status_code=404, detail="Incomplete report metadata")
         
     return ExportService.generate_pdf_report(report, doctor, patient)
+    
+@router.put("/{consultation_id}")
+def update_consultation(
+    consultation_id: str,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(["admin", "practitioner"]))
+):
+    updated = ConsultationService.update_consultation(
+        db, consultation_id, current_user.organization_id, data
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return updated
+
+@router.delete("/{consultation_id}")
+def delete_consultation(
+    consultation_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(["admin", "practitioner"]))
+):
+    success = ConsultationService.delete_consultation(
+        db, consultation_id, current_user.organization_id
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return {"message": "Consultation deleted"}

@@ -2,34 +2,34 @@ import requests
 import os
 import uuid
 import base64
-from datetime import datetime
 
+# Use environment variables as requested
 AZURE_SPEECH_KEY = os.getenv("OPENAI_API_KEY")
 AZURE_SPEECH_ENDPOINT = os.getenv("ENDPOINT")
 
 def transcribe_audio(audio_data: bytes, consultation_id: str):
     """
-    Transcribes audio using Azure Speech Services with medical terminology support.
+    Transcribes audio using Azure Speech Services.
+    Adapted to work with live memory data while keeping your logic.
     """
     job_id = str(uuid.uuid4())
     
+    # Check for mock key or missing key
     if not AZURE_SPEECH_KEY or AZURE_SPEECH_KEY in ["mock-key", "sk-mock-key"]:
         return {
-            "text": "Simulated transcription: Patient reports mild chest pain and shortness of breath. No history of cardiac issues.",
+            "text": "Simulated transcription: Patient reports mild chest pain and shortness of breath.",
             "job_id": job_id,
             "status": "completed",
             "confidence": 0.98
         }
 
     try:
-        # Specialized Medical Headers for Azure Speech
         headers = {
             "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
-            "Content-Type": "audio/wav",
-            "X-Search-Service": "Medical", # Instruction for medical domain
-            "X-Request-ID": job_id
+            "Content-Type": "audio/wav"
         }
 
+        # Send audio data directly from memory
         response = requests.post(
             AZURE_SPEECH_ENDPOINT,
             headers=headers,
@@ -37,23 +37,34 @@ def transcribe_audio(audio_data: bytes, consultation_id: str):
             timeout=30
         )
 
-        if response.status_code != 200:
-            return {"text": "Error: Transcription service unavailable", "job_id": job_id, "status": "failed", "confidence": 0}
-
         result = response.json()
+        transcript = result.get("DisplayText", "")
+
+        # Your quality check logic
+        if len(transcript) < 5:
+            transcript = "Low quality transcription"
+            status = "failed"
+        else:
+            status = "completed"
+
         return {
-            "text": result.get("DisplayText", "No speech detected"),
+            "text": transcript,
             "job_id": job_id,
-            "status": "completed",
+            "status": status,
             "confidence": 0.95
         }
+        
     except Exception as e:
-        return {"text": f"Error: {str(e)}", "job_id": job_id, "status": "failed", "confidence": 0}
+        print(f"Transcription error: {str(e)}")
+        return {
+            "text": f"Error: {str(e)}",
+            "job_id": job_id,
+            "status": "failed",
+            "confidence": 0
+        }
 
 def encrypt_audio(audio_data: bytes) -> bytes:
     """
     Simulates AES-256-GCM encryption before storage.
     """
-    # In production, we'd use cryptography.fernet or similar
-    # For now, we simulate the 'at-rest' protection layer
-    return base64.b64encode(audio_data)
+    return base64.b64encode(audio_data)

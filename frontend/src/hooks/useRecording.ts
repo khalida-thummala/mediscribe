@@ -9,20 +9,41 @@ export function useRecording() {
   const recognizerRef = useRef<SpeechSDK.SpeechRecognizer | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
   
   const [audioBase64, setAudioBase64] = useState<string | null>(null)
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
 
   const start = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      })
       
+      // Setup Web Audio API for Visualization
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 })
+      const source = audioContext.createMediaStreamSource(stream)
+      const analyserNode = audioContext.createAnalyser()
+      analyserNode.fftSize = 256
+      source.connect(analyserNode)
+      
+      audioContextRef.current = audioContext
+      analyserRef.current = analyserNode
+      setAnalyser(analyserNode)
+
       // Start MediaRecorder
       audioChunksRef.current = []
-      const mediaRecorder = new MediaRecorder(stream)
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data)
       }
-      mediaRecorder.start()
+      mediaRecorder.start(1000) // Collect chunks every second
       mediaRecorderRef.current = mediaRecorder
 
       // Start Azure Speech
@@ -32,9 +53,15 @@ export function useRecording() {
       if (speechKey && speechRegion) {
         const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion)
         speechConfig.speechRecognitionLanguage = 'en-US'
-        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput()
+        // Set service property for Medical domain as per architecture
+        speechConfig.setServiceProperty("punctuation", "true", SpeechSDK.ServicePropertyChannel.UriQueryParameter)
         
-        const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig)
+        const audioConfig = SpeechSDK.AudioConfig.fromStreamInput(SpeechSDK.AudioInputStream.createPushStream())
+        // Note: For simplicity in the browser, we often use fromDefaultMicrophoneInput
+        // but the SDK handles the stream internally.
+        const internalAudioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput()
+        
+        const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, internalAudioConfig)
         
         recognizer.recognized = (_, e) => {
           if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
@@ -45,13 +72,14 @@ export function useRecording() {
         recognizer.startContinuousRecognitionAsync()
         recognizerRef.current = recognizer
       } else {
-        console.warn('Azure Speech credentials not provided.')
+        console.warn('Azure Speech credentials not provided. Live transcription disabled.')
       }
 
       startRecording()
       timerRef.current = setInterval(tick, 1000)
     } catch (err) {
       console.error('Error starting recording:', err)
+      toast.error('Could not access microphone')
     }
   }, [appendTranscript, startRecording, tick])
 
@@ -65,6 +93,12 @@ export function useRecording() {
           recognizerRef.current?.close()
           recognizerRef.current = null
         })
+      }
+
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+        audioContextRef.current = null
+        setAnalyser(null)
       }
 
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -90,9 +124,10 @@ export function useRecording() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
       if (recognizerRef.current) recognizerRef.current.close()
+      if (audioContextRef.current) audioContextRef.current.close()
       if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop()
     }
   }, [])
 
-  return { isRecording, start, stop, audioBase64 }
+  return { isRecording, start, stop, audioBase64, analyser }
 }

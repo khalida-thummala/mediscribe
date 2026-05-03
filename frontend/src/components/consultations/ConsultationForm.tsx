@@ -7,44 +7,58 @@ import type { CreateConsultationPayload } from '@/types'
 interface Props {
   patients: any[]
   onSuccess: () => void
+  initialData?: any
 }
 
 const CONSULTATION_TYPES = ['General Consultation', 'Follow-up', 'Emergency', 'Specialist Referral', 'Preventive Care', 'Mental Health', 'Pediatric', 'Geriatric']
 
-export default function ConsultationForm({ patients, onSuccess }: Props) {
-  const { register, handleSubmit, formState: { errors } } = useForm<CreateConsultationPayload>()
+export default function ConsultationForm({ patients, onSuccess, initialData }: Props) {
+  const isEdit = !!initialData
+  const { register, handleSubmit, formState: { errors } } = useForm<CreateConsultationPayload>({
+    defaultValues: initialData ? {
+      ...initialData,
+      scheduled_at: initialData.scheduled_at ? new Date(initialData.scheduled_at).toISOString().slice(0, 16) : ''
+    } : {}
+  })
 
   const mut = useMutation({
-    mutationFn: consultationsApi.create,
-    onSuccess: () => { toast.success('Consultation scheduled'); onSuccess() },
-    onError: (e: any) => toast.error(e.response?.data?.detail || 'Failed to create consultation'),
+    mutationFn: (d: any) => isEdit ? consultationsApi.update(initialData.consultation_id, d) : consultationsApi.create(d),
+    onSuccess: () => {
+      toast.success(isEdit ? 'Consultation updated' : 'Consultation scheduled')
+      onSuccess()
+    },
+    onError: (e: any) => {
+      console.error('Consultation Action Error:', e);
+      toast.error(e.response?.data?.detail || e.message || 'Action failed');
+    },
   })
 
   return (
     <form onSubmit={handleSubmit((d) => {
-      // Clean up empty strings for optional datetime fields to prevent 422 validation errors
-      if (!d.scheduled_at) {
-        delete d.scheduled_at
+      const payload = { ...d }
+      if (!payload.scheduled_at) {
+        delete payload.scheduled_at
+      } else {
+        try {
+          payload.scheduled_at = new Date(payload.scheduled_at).toISOString()
+        } catch (e) {
+          delete payload.scheduled_at
+        }
       }
-      mut.mutate(d)
+      mut.mutate(payload)
     })}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
             <span>Patient <span style={{ color: '#e74c3c' }}>*</span></span>
-            <a href="/patients" style={{ color: 'var(--teal)', fontSize: 11, textDecoration: 'none' }}>+ Add New Patient</a>
+            {!isEdit && <a href="/patients" style={{ color: 'var(--teal)', fontSize: 11, textDecoration: 'none' }}>+ Add New Patient</a>}
           </label>
-          <select {...register('patient_id', { required: 'Patient is required' })} className="form-control">
+          <select {...register('patient_id', { required: 'Patient is required' })} className="form-control" disabled={isEdit}>
             <option value="">Select patient…</option>
             {patients.map((p: any) => (
               <option key={p.patient_id} value={p.patient_id}>{p.first_name} {p.last_name} — {p.medical_id}</option>
             ))}
           </select>
-          {patients.length === 0 && (
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
-              No patients found. Please <a href="/patients" style={{ color: 'var(--teal)', fontWeight: 600 }}>add a patient</a> first.
-            </div>
-          )}
           {errors.patient_id && <span style={{ fontSize: 11, color: '#e74c3c' }}>{errors.patient_id.message}</span>}
         </div>
 
@@ -74,7 +88,7 @@ export default function ConsultationForm({ patients, onSuccess }: Props) {
           padding: '9px 22px', background: 'var(--teal)', color: '#fff', border: 'none',
           borderRadius: 8, fontSize: 13.5, fontWeight: 500, cursor: mut.isPending ? 'not-allowed' : 'pointer', opacity: mut.isPending ? 0.7 : 1,
         }}>
-          {mut.isPending ? 'Creating…' : 'Create Consultation'}
+          {mut.isPending ? 'Saving…' : isEdit ? 'Update Consultation' : 'Create Consultation'}
         </button>
       </div>
     </form>

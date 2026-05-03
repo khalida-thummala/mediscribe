@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { consultationsApi } from '@/api/consultations'
 import { patientsApi } from '@/api/patients'
-import { Plus, Mic, StopCircle, Eye, Stethoscope, Calendar, Clock } from 'lucide-react'
+import { Plus, Mic, StopCircle, Eye, Stethoscope, Calendar, Clock, Edit2, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import Modal from '@/components/shared/Modal'
 import ConsultationForm from './ConsultationForm'
@@ -13,12 +13,16 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string;
   completed:   { color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', label: 'Completed' },
   in_progress: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', label: 'Recording' },
   scheduled:   { color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'Scheduled' },
-  cancelled:   { color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', label: 'Cancelled' },
+  pending:             { color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'Scheduled' },
+  cancelled:           { color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', label: 'Cancelled' },
+  failed_transcription:{ color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', label: 'Transcription Failed' },
+  failed_soap:         { color: '#e11d48', bg: '#fff1f2', border: '#fecdd3', label: 'SOAP AI Failed' },
 }
 
 export default function ConsultationList() {
   const qc = useQueryClient()
   const [showNew, setShowNew] = useState(false)
+  const [editItem, setEditItem] = useState<any>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -30,6 +34,25 @@ export default function ConsultationList() {
     mutationFn: (id: string) => consultationsApi.start(id),
     onSuccess: (_, id) => { setActiveId(id); qc.invalidateQueries({ queryKey: ['consultations'] }) },
     onError: () => toast.error('Failed to start consultation'),
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => consultationsApi.delete(id),
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['consultations'] })
+      toast.success('Consultation deleted')
+    },
+    onError: () => toast.error('Failed to delete consultation'),
+  })
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => consultationsApi.update(id, data),
+    onSuccess: () => {
+      setEditItem(null)
+      qc.invalidateQueries({ queryKey: ['consultations'] })
+      toast.success('Consultation updated')
+    },
+    onError: () => toast.error('Failed to update consultation'),
   })
 
   const { data: patientsData } = useQuery({
@@ -181,55 +204,79 @@ export default function ConsultationList() {
                       {c.created_at ? format(new Date(c.created_at), 'MMM d, h:mm a') : '—'}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: 7 }}>
-                        {c.status === 'scheduled' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        {/* Start/Resume Button for anything not completed */}
+                        {(c.status === 'scheduled' || c.status === 'pending' || c.status.startsWith('failed')) && (
                           <button
                             onClick={() => startMut.mutate(c.consultation_id)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 5,
-                              padding: '5px 12px', borderRadius: 8, cursor: 'pointer',
-                              background: '#ecfdf5', color: '#059669',
-                              border: '1px solid #a7f3d0', fontSize: 12, fontWeight: 600,
+                              padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                              background: c.status.startsWith('failed') ? '#6b7280' : '#0d9488', 
+                              color: '#fff',
+                              border: 'none', fontSize: 12, fontWeight: 600,
                               transition: 'all 0.15s',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#ecfdf5'; e.currentTarget.style.color = '#059669'; e.currentTarget.style.borderColor = '#a7f3d0'; }}
                           >
-                            <Mic size={12} /> Start
+                            <Mic size={12} /> {c.status.startsWith('failed') ? 'Retry' : 'Start Session'}
                           </button>
                         )}
+                        
                         {c.status === 'in_progress' && (
                           <button
                             onClick={() => setActiveId(c.consultation_id)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 5,
-                              padding: '5px 12px', borderRadius: 8, cursor: 'pointer',
-                              background: '#fff1f2', color: '#e11d48',
-                              border: '1px solid #fecdd3', fontSize: 12, fontWeight: 600,
+                              padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                              background: '#e11d48', color: '#fff',
+                              border: 'none', fontSize: 12, fontWeight: 600,
                               transition: 'all 0.15s',
+                              boxShadow: '0 2px 4px rgba(225, 29, 72, 0.2)'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f43f5e'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff1f2'; e.currentTarget.style.color = '#e11d48'; e.currentTarget.style.borderColor = '#fecdd3'; }}
                           >
-                            <StopCircle size={12} /> End
+                            <StopCircle size={12} /> Resume
                           </button>
                         )}
+
                         {c.status === 'completed' && (
-                          <a
-                            href={`/consultations/${c.consultation_id}/soap`}
+                          <button
+                            onClick={() => window.location.href = `/consultations/${c.consultation_id}/soap`}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 5,
-                              padding: '5px 12px', borderRadius: 8, cursor: 'pointer',
-                              background: '#f5f3ff', color: '#7c3aed',
-                              border: '1px solid #ddd6fe', fontSize: 12, fontWeight: 600,
-                              textDecoration: 'none', transition: 'all 0.15s',
+                              padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                              background: '#7c3aed', color: '#fff',
+                              border: 'none', fontSize: 12, fontWeight: 600,
+                              transition: 'all 0.15s',
+                              boxShadow: '0 2px 4px rgba(124, 58, 237, 0.2)'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#7c3aed'; (e.currentTarget as HTMLAnchorElement).style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#f5f3ff'; (e.currentTarget as HTMLAnchorElement).style.color = '#7c3aed'; e.currentTarget.style.borderColor = '#ddd6fe'; }}
                           >
-                            <Eye size={12} /> SOAP
-                          </a>
+                            <Stethoscope size={12} /> View SOAP
+                          </button>
                         )}
+                        
+                        {/* Edit/Delete Buttons */}
+                        <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+                          <button 
+                            className="btn-icon" 
+                            style={{ padding: 6, color: 'var(--text-3)' }}
+                            onClick={() => setEditItem(c)}
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            className="btn-icon" 
+                            style={{ padding: 6, color: '#f43f5e' }}
+                            onClick={() => {
+                              if(confirm('Are you sure you want to delete this consultation?')) {
+                                deleteMut.mutate(c.consultation_id);
+                              }
+                            }}
+                            disabled={deleteMut.isPending}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -246,6 +293,16 @@ export default function ConsultationList() {
           patients={patients}
           onSuccess={() => { setShowNew(false); qc.invalidateQueries({ queryKey: ['consultations'] }) }}
         />
+      </Modal>
+
+      <Modal open={!!editItem} onClose={() => setEditItem(null)} title="Edit Consultation" width={520}>
+        {editItem && (
+          <ConsultationForm
+            patients={patients}
+            initialData={editItem}
+            onSuccess={() => { setEditItem(null); qc.invalidateQueries({ queryKey: ['consultations'] }) }}
+          />
+        )}
       </Modal>
 
       {activeId && (

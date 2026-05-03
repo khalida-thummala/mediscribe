@@ -24,3 +24,14 @@ dist-ssr
 *.sw?
   
 MediScribe_Production_Grade_Architecture.* 
+
+# MediScribe Specific
+backend/uploads/
+__pycache__/
+*.pyc
+.env
+.env.local
+.venv/
+env/
+venv/
+node_modules/

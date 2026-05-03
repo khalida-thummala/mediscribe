@@ -3,7 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { consultationsApi } from '@/api/consultations'
 import { useRecording } from '@/hooks/useRecording'
 import { useConsultationStore } from '@/store/consultationStore'
-import { Mic, StopCircle, Loader2 } from 'lucide-react'
+import { Mic, StopCircle, Loader2, Info } from 'lucide-react'
+import AudioVisualizer from './AudioVisualizer'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export default function RecordingPanel({ consultationId, onComplete }: Props) {
-  const { isRecording, start, stop } = useRecording()
+  const { isRecording, start, stop, analyser } = useRecording()
   const { recSeconds, transcript } = useConsultationStore()
   const [phase, setPhase] = useState<'idle' | 'recording' | 'stopping' | 'done'>('idle')
 
@@ -28,7 +29,7 @@ export default function RecordingPanel({ consultationId, onComplete }: Props) {
     onSuccess: () => {
       setPhase('done')
       toast.success('Consultation ended — SOAP generation triggered')
-      setTimeout(onComplete, 2000)
+      setTimeout(onComplete, 3000)
     },
     onError: () => { toast.error('Failed to end consultation'); setPhase('idle') },
   })
@@ -49,77 +50,120 @@ export default function RecordingPanel({ consultationId, onComplete }: Props) {
 
   return (
     <div style={{ padding: '8px 0' }}>
-      {/* Timer */}
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <div style={{
-          fontSize: 48, fontWeight: 700, fontFamily: 'monospace',
-          color: isRecording ? '#e74c3c' : 'var(--text-1)',
-          transition: 'color 0.3s',
-        }}>
-          {minutes}:{seconds}
+      {/* Visualizer & Timer Section */}
+      <div style={{ 
+        background: 'var(--surface)', 
+        border: '1px solid var(--border)', 
+        borderRadius: 16, 
+        padding: 24, 
+        marginBottom: 20,
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{
+            fontSize: 56, fontWeight: 700, fontFamily: 'DM Sans, monospace',
+            color: isRecording ? '#e74c3c' : 'var(--text-1)',
+            transition: 'color 0.3s',
+            letterSpacing: -1
+          }}>
+            {minutes}:{seconds}
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>
-          {phase === 'idle' && 'Ready to record'}
-          {phase === 'recording' && <span style={{ color: '#e74c3c' }}>● Recording in progress</span>}
-          {phase === 'stopping' && 'Stopping & processing…'}
-          {phase === 'done' && '✓ Consultation completed'}
+
+        <AudioVisualizer analyser={analyser} isRecording={isRecording} />
+        
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: isRecording ? '#e74c3c' : 'var(--text-3)' }}>
+            {phase === 'idle' && 'READY TO RECORD'}
+            {phase === 'recording' && (
+              <span className="pulse" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#e74c3c' }} />
+                LIVE RECORDING
+              </span>
+            )}
+            {phase === 'stopping' && 'STOPPING & UPLOADING...'}
+            {phase === 'done' && '✓ SESSION COMPLETE'}
+          </div>
         </div>
+      </div>
+
+      {/* Transcription Status Info */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 8, 
+        padding: '10px 14px', 
+        background: '#eff6ff', 
+        color: '#2563eb', 
+        borderRadius: 10, 
+        fontSize: 12,
+        marginBottom: 20,
+        border: '1px solid #bfdbfe'
+      }}>
+        <Info size={14} />
+        Audio is captured at 16kHz with HIPAA-compliant encryption.
       </div>
 
       {/* Live Transcript */}
       {(phase === 'recording' || phase === 'stopping') && (
         <div style={{
           background: 'var(--surface-hover)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: 16, marginBottom: 20,
-          maxHeight: 160, overflowY: 'auto', fontSize: 13, lineHeight: 1.6, color: 'var(--text-2)',
+          borderRadius: 12, padding: 18, marginBottom: 24,
+          minHeight: 120, maxHeight: 180, overflowY: 'auto', fontSize: 14, lineHeight: 1.6, color: 'var(--text-2)',
         }}>
-          {transcript || <span style={{ color: 'var(--text-3)', fontStyle: 'italic' }}>Listening for speech…</span>}
+          {transcript ? (
+            <div>{transcript}</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 20 }}>
+              <Loader2 size={20} className="spin" style={{ color: 'var(--text-4)' }} />
+              <span style={{ color: 'var(--text-4)', fontStyle: 'italic' }}>Listening for speech…</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Final Transcript */}
+      {/* Final Transcript View */}
       {phase === 'done' && transcription && (
         <div style={{
-          background: '#0e7c4a10', border: '1px solid #0e7c4a40',
-          borderRadius: 10, padding: 16, marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: 'var(--text-2)',
+          background: '#f0fdf4', border: '1px solid #bbf7d0',
+          borderRadius: 12, padding: 18, marginBottom: 24, fontSize: 14, lineHeight: 1.6, color: '#166534',
         }}>
-          {(transcription as any).transcription_text || 'Processing transcription…'}
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 12, textTransform: 'uppercase', opacity: 0.7 }}>Final Transcript</div>
+          {(transcription as any).transcription_text || 'Compiling final transcription…'}
         </div>
       )}
 
-      {/* Controls */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 14 }}>
+      {/* Main Action Controls */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         {phase === 'idle' && (
           <button
             onClick={handleStart}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px',
-              background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 10,
-              fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            }}
+            className="btn btn-primary"
+            style={{ padding: '14px 40px', borderRadius: 12, fontSize: 15 }}
           >
-            <Mic size={18} /> Start Recording
+            <Mic size={18} /> Start Session
           </button>
         )}
         {phase === 'recording' && (
           <button
             onClick={handleStop}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px',
-              background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 10,
-              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8, padding: '14px 40px',
+              background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 12,
+              fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(231, 76, 60, 0.3)'
             }}
           >
-            <StopCircle size={18} /> End Consultation
+            <StopCircle size={18} /> Stop & Generate SOAP
           </button>
         )}
         {phase === 'stopping' && (
           <button disabled style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px',
-            background: 'var(--border)', color: 'var(--text-3)', border: 'none', borderRadius: 10,
-            fontSize: 14, fontWeight: 600, cursor: 'not-allowed',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '14px 40px',
+            background: 'var(--border)', color: 'var(--text-3)', border: 'none', borderRadius: 12,
+            fontSize: 15, fontWeight: 600, cursor: 'not-allowed',
           }}>
-            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Processing…
+            <Loader2 size={18} className="spin" /> Processing Audio...
           </button>
         )}
       </div>

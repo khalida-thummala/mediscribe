@@ -12,7 +12,8 @@ class ConsultationBase(BaseModel):
 
 
 class ConsultationCreate(ConsultationBase):
-    pass
+    class Config:
+        from_attributes = True
 
 
 class ConsultationUpdate(BaseModel):

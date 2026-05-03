@@ -4,19 +4,16 @@ from app.core.speech import transcribe_audio
 
 router = APIRouter()
 
-
 @router.post("/transcribe")
 async def transcribe(file: UploadFile = File(...)):
-    
-    os.makedirs("uploads", exist_ok=True)
+    # Read the file content as bytes
+    audio_data = await file.read()
 
-    file_path = f"uploads/{file.filename}"
-
-    with open(file_path, "wb") as buffer:
-        buffer.write(await file.read())
-
-    text = transcribe_audio(file_path)
+    # Call our core transcription engine with the bytes
+    result = transcribe_audio(audio_data, consultation_id="api_upload")
 
     return {
-        "transcription": text
+        "transcription": result["text"],
+        "status": result["status"],
+        "job_id": result["job_id"]
     }

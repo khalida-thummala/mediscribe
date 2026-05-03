@@ -11,6 +11,7 @@ from app.models.patient import Patient
 from app.models.consultation import Consultation
 from app.models.report import Report
 from app.models.analysis import Analysis
+from app.models.audit import AuditLog
 
 # routers
 from app.api.auth import router as auth_router
