@@ -28,6 +28,12 @@ const ProfileSettings: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.phone && formData.phone.length !== 10) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
+    
     mutation.mutate(formData);
   };
 
@@ -50,10 +56,17 @@ const ProfileSettings: React.FC = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
           <input
+            type="tel"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            maxLength={10}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+              setFormData({ ...formData, phone: val });
+            }}
+            placeholder="9876543210"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d6e6e] outline-none"
           />
+          <p className="text-[10px] text-gray-400 mt-1">Exactly 10 digits required</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email (Read-only)</label>
