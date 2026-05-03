@@ -161,16 +161,21 @@ def generate_soap_endpoint(
     except Exception:
         raise HTTPException(status_code=500, detail="Invalid AI response")
 
+    def stringify(val):
+        if isinstance(val, (dict, list)):
+            return json.dumps(val, indent=2)
+        return str(val) if val is not None else ""
+
     report = Report(
         consultation_id=consultation_id,
         patient_id=consultation.patient_id,
         user_id=current_user.user_id,
         organization_id=current_user.organization_id,
 
-        subjective=str(soap.get("subjective")),
-        objective=str(soap.get("objective")),
-        assessment=str(soap.get("assessment")),
-        plan=str(soap.get("plan")),
+        subjective=stringify(soap.get("subjective")),
+        objective=stringify(soap.get("objective")),
+        assessment=stringify(soap.get("assessment")),
+        plan=stringify(soap.get("plan")),
 
         medications=soap.get("medications", []),
         key_entities={"interactions": interactions},

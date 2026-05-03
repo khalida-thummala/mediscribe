@@ -112,16 +112,22 @@ class ReportService:
         import json
         soap_data = json.loads(response.choices[0].message.content)
         
+        # Helper to convert dict to string if needed
+        def stringify(val):
+            if isinstance(val, (dict, list)):
+                return json.dumps(val, indent=2)
+            return str(val) if val is not None else ""
+
         # Create the report record
         new_report = Report(
             consultation_id=consultation_id,
             patient_id=consultation.patient_id,
             user_id=consultation.user_id,
             organization_id=organization_id,
-            subjective=soap_data.get("subjective", ""),
-            objective=soap_data.get("objective", ""),
-            assessment=soap_data.get("assessment", ""),
-            plan=soap_data.get("plan", ""),
+            subjective=stringify(soap_data.get("subjective")),
+            objective=stringify(soap_data.get("objective")),
+            assessment=stringify(soap_data.get("assessment")),
+            plan=stringify(soap_data.get("plan")),
             status="draft"
         )
         
