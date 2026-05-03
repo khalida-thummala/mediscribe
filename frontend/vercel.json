@@ -1,9 +1,9 @@
 {
-  "version": 2,
-  "outputDirectory": "dist",
-  "cleanUrls": true,
-  "trailingSlash": false,
   "rewrites": [
+    {
+      "source": "/(api|docs|redoc)(.*)",
+      "destination": "https://mediscribe-backend-qlki.onrender.com/$1$2"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
