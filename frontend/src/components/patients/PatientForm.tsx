@@ -81,21 +81,22 @@ export default function PatientForm({ initial, onSuccess }: Props) {
         {field('Email', 'email', 'email')}
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
-            Phone
+            Phone <span style={{ color: '#e74c3c' }}>*</span>
           </label>
           <input
             type="tel"
             {...register('phone', { 
-              maxLength: { value: 10, message: 'Max 10 digits' },
-              minLength: { value: 10, message: 'Must be 10 digits' },
+              required: 'Phone number is required',
+              maxLength: { value: 10, message: 'Exactly 10 digits required' },
+              minLength: { value: 10, message: 'Exactly 10 digits required' },
               pattern: { value: /^[0-9]+$/, message: 'Numbers only' }
             })}
             maxLength={10}
             className="form-control"
-            placeholder="1234567890"
+            placeholder="9876543210"
             style={{ marginBottom: 0 }}
           />
-          {errors.phone && <span style={{ fontSize: 11, color: '#e74c3c' }}>{errors.phone.message}</span>}
+          {errors.phone && <span style={{ fontSize: 11, color: '#e74c3c' }}>{errors.phone.message as string}</span>}
         </div>
       </div>
       <div style={{ marginBottom: 14 }}>
